@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# Colors
+red() { echo -e "\033[31m$1\033[0m" >&2; }
+green() { echo -e "\033[32m$1\033[0m"; }
+blue() { echo -e "\033[34m$1\033[0m"; }
+yellow() { echo -e "\033[33m$1\033[0m"; }
+
+show_help() {
+    echo "Verwendung: $0 [db|webapp|all]"
+    echo "  db      - builds & deploys the database"
+    echo "  webapp  - builds & deploys the webapp"
+    echo "  all     - builds & deploys both (default)"
+    exit 1
+}
+
+# Database deployment
+deploy_db() {
+    green "🚀 Starting database deployment..."
+    
+    yellow "⚠️ Removing old database containers and volumes..."
+    docker-compose down -v --remove-orphans 2>/dev/null
+    
+    # Remove specific volumes that might persist
+    docker volume rm portfoliowebapp_postgres_data 2>/dev/null || true
+    
+    green "🔨 Building fresh database image..."
+    if ! docker-compose build --no-cache db; then
+        red "❌ Database build failed"
+        return 1
+    fi
+
+    green "🚀 Starting database container..."
+    if ! docker-compose up -d db; then
+        red "❌ Database startup failed"
+        docker-compose logs db
+        return 1
+    fi
+
+    green "⏳ Waiting for database to be ready (timeout: 30s)..."
+    
+    local timeout=30
+    local start_time=$(date +%s)
+    local elapsed=0
+    
+    while ! docker-compose exec db pg_isready -U webapp -d webappdb >/dev/null 2>&1; do
+        sleep 1
+        local current_time=$(date +%s)
+        elapsed=$((current_time - start_time))
+        
+        if [ $elapsed -ge $timeout ]; then
+            red "❌ Database did not become ready within $timeout seconds"
+            docker-compose logs db
+            return 1
+        fi
+    done
+
+    green "✅ Database deployed and ready after ${elapsed}s!"
+    echo "   - Port: 6543 (external) → 5432 (container)"
+    echo "   - User: webapp/webapp123"
+    echo "   - DB: webappdb"
+    return 0
+}
+
+# WebApp-Deployment
+deploy_webapp() {
+    green "🚀 Starting webapp deployment..."
+    if ! docker-compose up -d --build web; then
+        red "❌ webapp deployment failed"
+        return 1
+    fi
+
+    green "✅ webapp deployed successfully!"
+    echo "   - WebApp: http://localhost:5120"
+    echo "   - Container-Port: 80"
+    return 0
+}
+
+# MainScript
+main() {
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    cd "$PROJECT_ROOT" || { red "❌ Project-Root not found"; exit 1; }
+
+    local target="${1:-all}"  # Default is 'all'
+
+    case "$target" in
+        db)
+            deploy_db || exit 1
+            ;;
+        webapp)
+            deploy_webapp || exit 1
+            ;;
+        all)
+            blue "=== Starting full deployment ==="
+            if ! deploy_db || ! deploy_webapp; then
+                red "❌ Aborting deployment"
+                exit 1
+            fi
+            green "\n🎉 Everything deployed successfully!"
+            docker ps --filter "name=blazor-webapp|database-webapp" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            red "❌ Invalid argument: $target"
+            show_help
+            ;;
+    esac
+}
+
+main "$@"

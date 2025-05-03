@@ -1,0 +1,80 @@
+@page "/Account/Register"
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [AllowAnonymous]
+
+<div class="register-container">
+    <h3>Registrierung</h3>
+
+    <EditForm Model="@RegisterData" OnValidSubmit="HandleRegister" FormName="RegisterData">
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+
+        <div class="form-group">
+            <label for="username">Benutzername</label>
+            <InputText id="username" class="form-control" @bind-Value="RegisterData.Username"/>
+        </div>
+        <div class="form-group">
+            <label for="password">Passwort</label>
+            <InputText id="password" type="password" class="form-control" @bind-Value="RegisterData.Password"/>
+        </div>
+        <div class="form-group">
+            <label for="confirmPassword">Passwort bestätigen</label>
+            <InputText id="confirmPassword" type="password" class="form-control" @bind-Value="RegisterData.ConfirmPassword"/>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Registrieren</button>
+    </EditForm>
+
+    <div class="text-center mt-3">
+        <a href="/Account/Login" class="login-link">Bereits registriert? Zum Login</a>
+    </div>
+
+    @if (ShowRegisterError)
+    {
+        <div class="alert alert-danger mt-3">
+            @RegisterErrorMessage
+        </div>
+    }
+</div>
+
+<style>
+    .register-container {
+        width: 100%;
+        max-width: 400px;
+        margin: 50px auto;
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    label {
+        font-weight: bold;
+    }
+
+    .btn {
+        margin-top: 10px;
+    }
+
+    h3 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .alert {
+        text-align: center;
+    }
+
+    .login-link {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+    .login-link:hover {
+        text-decoration: underline;
+    }
+</style>

@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Colors for output
+red() { echo -e "\033[31m$1\033[0m" >&2; }
+green() { echo -e "\033[32m$1\033[0m"; }
+blue() { echo -e "\033[34m$1\033[0m"; }
+
+# Show help
+show_help() {
+    echo "Usage: $0 [db|webapp|all]"
+    echo "  db      - Restart only the database"
+    echo "  webapp  - Restart only the webapp"
+    echo "  all     - Restart everything (default)"
+    exit 1
+}
+
+# Restart database
+restart_db() {
+    green "🔄 Restarting database..."
+    if ! docker-compose restart db; then
+        red "❌ Failed to restart database"
+        return 1
+    fi
+
+    green "⏳ Waiting for database to be ready (timeout: 10s)..."
+    
+    local timeout=10
+    local start_time=$(date +%s)
+    local elapsed=0
+    
+    while ! docker exec database-webapp pg_isready -U webapp -d webappdb >/dev/null 2>&1; do
+        local current_time=$(date +%s)
+        elapsed=$((current_time - start_time))
+        
+        if [ $elapsed -ge $timeout ]; then
+            red "❌ Database did not become ready within $timeout seconds"
+            return 1
+        fi
+        
+        sleep 1
+    done
+
+    green "✅ Database restarted and ready after ${elapsed:-0}s!"
+    return 0
+}
+
+# Restart webapp
+restart_webapp() {
+    green "🔄 Restarting webapp..."
+    if ! docker-compose restart web; then
+        red "❌ Failed to restart webapp"
+        return 1
+    fi
+
+    green "✅ Webapp restarted successfully!"
+    return 0
+}
+
+# Main script
+main() {
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    cd "$PROJECT_ROOT" || { red "❌ Project root not found"; exit 1; }
+
+    local target="${1:-all}"  # Default: 'all'
+
+    case "$target" in
+        db)
+            restart_db || exit 1
+            ;;
+        webapp)
+            restart_webapp || exit 1
+            ;;
+        all)
+            blue "=== Restarting all services ==="
+            if ! restart_db || ! restart_webapp; then
+                red "❌ Full restart failed"
+                exit 1
+            fi
+            green "\n🎉 All services restarted successfully!"
+            docker ps --filter "name=blazor-webapp|database-webapp" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            red "❌ Invalid argument: $target"
+            show_help
+            ;;
+    esac
+}
+
+main "$@"

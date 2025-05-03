@@ -1,0 +1,42 @@
+﻿version: '3.8'
+
+services:
+  db:
+    container_name: database-webapp
+    build:
+      context: .
+      dockerfile: Database/Dockerfile
+    ports:
+      - "6543:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  web:
+    container_name: blazor-webapp
+    build:
+      context: .
+      dockerfile: Dev/Dockerfile
+    ports:
+      - "5120:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=webappdb;Username=webapp;Password=webapp123
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge  portfoliowebapp:
+    image: portfoliowebapp
+    build:
+      context: .
+      dockerfile: PortfolioWebApp/Dockerfile
+

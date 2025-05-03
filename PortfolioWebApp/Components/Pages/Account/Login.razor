@@ -1,0 +1,37 @@
+@page "/Account/Login"
+@using System.ComponentModel.DataAnnotations
+@attribute [AllowAnonymous]
+
+
+<MudForm @ref="_form">
+    <MudTextField @bind-Value="loginModel.Username" Label="Username" T="string" 
+                  Required="true" RequiredError="Username is required" />
+    <MudTextField @bind-Value="loginModel.Password" Label="Password" T="string" 
+                  InputType="InputType.Password" Required="true" RequiredError="Password is required" />
+    
+    <MudButton OnClick="SubmitForm" Color="Color.Primary">Log in</MudButton>
+    
+    <span>@message</span>
+</MudForm>
+
+@code {
+    private MudForm _form;
+    private LoginModel loginModel = new();
+
+    private string message = string.Empty;
+    
+    private async Task SubmitForm()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            message = "form is valid";
+        }
+    }
+
+    public class LoginModel
+    {
+        [Required] public string Username { get; set; }
+        [Required] public string Password { get; set; }
+    }
+}
