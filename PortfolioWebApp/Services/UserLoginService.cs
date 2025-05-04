@@ -13,7 +13,7 @@ namespace PortfolioWebApp.Services
     public interface IUserLoginService
     {
         Task<User?> ValidateCredentialsAsync(string username, string password);
-        Task<bool> LoginAsync(User? user);
+        Task<bool> LoginAsync(User? user, bool rememberMe);
     }
 
     public class UserLoginService : IUserLoginService
@@ -34,9 +34,11 @@ namespace PortfolioWebApp.Services
 
         public async Task<User?> ValidateCredentialsAsync(string username, string password)
         {
+            var normalized = username.Trim().ToLower();
+
             var user = await _dbContext.Users
                 .Include(u => u.Roles)
-                .FirstOrDefaultAsync(u => u.UserName.ToLower() == username.ToLower());
+                .FirstOrDefaultAsync(u => u.UserName.ToLower() == normalized);
 
             if (user == null || user.State != UserState.Active) {
                 return null;
@@ -49,28 +51,31 @@ namespace PortfolioWebApp.Services
             return user;
         }
 
-        public async Task<bool> LoginAsync(User? user)
+
+        public async Task<bool> LoginAsync(User? user, bool rememberMe)
         {
-            // Konvertiere User zu ClaimsPrincipal
+            if (user is null) {
+                return false;
+            }
+            
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim("State", user.State.ToString()),
-                new Claim("LastOnline", user.LastOnline?.ToString("o") ?? string.Empty),
-                new Claim("Created", user.Created.ToString("o"))
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
-
-            // Füge Rollen als Claims hinzu
-            foreach (var role in user.Roles)
-            {
+            
+            foreach (var role in user.Roles) {
                 claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
             }
 
-            var identity = new ClaimsIdentity(claims, "PortfolioAuth");
+            var properties = new AuthenticationProperties {
+                IsPersistent = rememberMe
+            };
+
+            var identity = new ClaimsIdentity(claims, "auth_cookie");
             var principal = new ClaimsPrincipal(identity);
             
-            await _authenticationStateProvider.SignInAsync(principal);
+            await _authenticationStateProvider.SignInAsync(principal, properties);
             return true;
         }
     }

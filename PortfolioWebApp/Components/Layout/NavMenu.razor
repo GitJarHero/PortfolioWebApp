@@ -1,5 +1,5 @@
 <MudDrawer @bind-Open="Open" ClipMode="DrawerClipMode.Always" Elevation="1" Variant="@DrawerVariant.Mini">
-    <!-- Icon + Title -->
+
     <MudDrawerHeader Class="pa-4">
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.BubbleChart" Class="me-2" />
@@ -10,7 +10,7 @@
     <MudNavMenu Color="Color.Info">
         <AuthorizeView>
             <Authorized Context="authContext">
-                <!-- Für alle eingeloggten Nutzer sichtbar -->
+                <!-- visible for authenticated users -->
                 <MudNavLink Href="/Home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
                     Home
                 </MudNavLink>
@@ -22,8 +22,7 @@
                 </MudNavLink>
 
                 <MudSpacer/>
-
-                <!-- Für Standard-User sichtbar -->
+                
                 <MudNavLink Href="/Account/Profile" Icon="@Icons.Material.Filled.AccountCircle">
                     Profile
                 </MudNavLink>
@@ -31,7 +30,7 @@
                     Logout
                 </MudNavLink>
 
-                <!-- Nur für Admins sichtbar -->
+                <!-- visible to admins -->
                 <AuthorizeView Roles="admin">
                     <Authorized Context="adminContext">
                         <MudNavLink Href="/Administration" Icon="@Icons.Material.Filled.AdminPanelSettings">
@@ -42,7 +41,7 @@
             </Authorized>
             
             <NotAuthorized>
-                <!-- Nur für nicht eingeloggte Nutzer sichtbar -->
+                <!-- visible to non-authenticated users -->
                 <MudNavLink Href="/Account/Login" Icon="@Icons.Material.Filled.Login"> 
                     Login
                 </MudNavLink>

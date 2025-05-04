@@ -6,7 +6,7 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <!-- AppBar mit Menü-Button -->
+    <!-- AppBar on top -->
     <MudAppBar Elevation="1" Fixed="true" Height="60px" Dense="true">
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        Color="Color.Inherit"
@@ -28,10 +28,10 @@
         </AuthorizeView>
     </MudAppBar>
 
-    <!-- Ausgelagerte NavMenu-Komponente -->
+    <!-- Side Bar (MudDrawer) -->
     <NavMenu @bind-Open="_open" />
 
-    <!-- Hauptinhalt -->
+    <!-- Main Content -->
     <MudMainContent Class="pt-16 px-16">
         <MudContainer Class="mt-6">
             @Body
