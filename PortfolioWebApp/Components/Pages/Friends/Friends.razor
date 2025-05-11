@@ -1,0 +1,135 @@
+@page "/Friends"
+@using PortfolioWebApp.Models.Entities
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using PortfolioWebApp.Models
+@using PortfolioWebApp.Services
+@inject FriendshipService FriendshipService
+@inject AppDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Freunde</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudPaper Class="p-6" Elevation="1">
+        <MudText Typo="Typo.h4" Class="mb-6">👥 Deine Freunde</MudText>
+
+        <MudGrid Spacing="3">
+            @if (_friends.Any())
+            {
+                @foreach (var friend in _friends)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Class="hover:shadow-md transition-all" Style="border-radius: 12px;">
+                            <MudCardContent Class="d-flex align-items-center">
+                                <MudAvatar Size="Size.Large" Icon="Icons.Material.Filled.Person" Color="Color.Primary" Class="me-3" />
+                                <MudText Typo="Typo.subtitle1">@friend.UserName</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Elevation="0" Dense="true">
+                        Du hast noch keine Freunde. Nutze das Suchfeld unten, um neue hinzuzufügen!
+                    </MudAlert>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudPaper>
+
+    <MudDivider Class="my-6" />
+
+    <MudPaper Class="p-6 mt-6" Elevation="1">
+        <MudText Typo="Typo.h5" Class="mb-4">🔍 Freunde finden</MudText>
+
+        <MudAutocomplete T="User"
+                         Label="Benutzername suchen..."
+                         Variant="Variant.Filled"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="Icons.Material.Filled.Search"
+                         @bind-Value="_selectedUser"
+                         ToStringFunc="@(u => u?.UserName ?? string.Empty)"
+                         SearchFunc="SearchUsersAsync"
+                         CoerceText="true"
+                         Clearable="true"
+                         DebounceInterval="300"
+                         Dense="false"
+                         Class="mb-4"
+                         Style="width: 100%; max-width: 500px;">
+            <ItemTemplate Context="user">
+                <MudGrid AlignItems="Center">
+                    <MudItem xs="2">
+                        <MudAvatar Size="Size.Medium" Icon="Icons.Material.Filled.Person" />
+                    </MudItem>
+                    <MudItem xs="10">
+                        <MudText>@user.UserName</MudText>
+                    </MudItem>
+                </MudGrid>
+            </ItemTemplate>
+        </MudAutocomplete>
+
+        <MudButton Disabled="@(_selectedUser == null)"
+                   OnClick="() => SendFriendRequest(_selectedUser)"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="Icons.Material.Filled.PersonAdd">
+            Freund hinzufügen
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+
+@code {
+    private List<User> _friends = new();
+    private User _selectedUser;
+    private User _currentUser; // <- Aktueller User als Entity
+    private int _currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var idStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idStr, out var id))
+            {
+                _currentUserId = id;
+                _currentUser = await DbContext.Users.FirstOrDefaultAsync(u => u.Id == id); // <- User laden
+                _friends = FriendshipService.GetFriendsOfUser(id);
+            }
+        }
+    }
+
+    private async Task<IEnumerable<User>> SearchUsersAsync(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Array.Empty<User>();
+
+        var users = await DbContext.Users
+            .Where(u => u.UserName.ToLower().Contains(value.ToLower()) && u.Id != _currentUserId)
+            .Take(20)
+            .ToListAsync(token);
+
+        return users.Where(u => !_friends.Any(f => f.Id == u.Id));
+    }
+
+    private void SendFriendRequest(User user)
+    {
+        var friendship = new Friendship
+        {
+            User1 = _currentUser,
+            User2 = user
+        };
+
+        FriendshipService.Save(friendship);
+        _friends.Add(user);
+        Snackbar.Add($"Anfrage gesendet an {user.UserName}", Severity.Success);
+        _selectedUser = null;
+    }
+}

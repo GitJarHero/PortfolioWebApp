@@ -1,8 +1,8 @@
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using PortfolioWebApp.Components;
@@ -37,6 +37,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 
@@ -50,17 +51,15 @@ builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
 builder.Services.AddScoped<IUserRegistrationService, UserRegistrationService>();
 builder.Services.AddScoped<IUserLoginService, UserLoginService>();
 builder.Services.AddScoped<UserLoginService>();
+builder.Services.AddScoped<FriendshipService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
 
-/*
-builder.Services.AddAntiforgery(options => 
-{
-    options.HeaderName = "X-CSRF-TOKEN";
-    options.Cookie.Name = "X-CSRF-TOKEN";
-    options.SuppressXFrameOptionsHeader = false;
-}); 
-*/
+builder.Logging.AddConsole();
+builder.Services.AddAntiforgery();
 
 var app = builder.Build();
+
 
 app.UseExceptionHandler("/Error/ServerError");
 app.UseStatusCodePagesWithReExecute("/error/{0}");
@@ -85,8 +84,6 @@ app.MapGet("/Account/Logout", async (HttpContext context) =>
     await context.SignOutAsync("auth_cookie");
     return Results.Redirect("/");
 });
-
-
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

@@ -18,4 +18,9 @@
       <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css.map" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Components\Pages\Chats\" />
+      <Folder Include="Hubs\" />
+    </ItemGroup>
+
 </Project>

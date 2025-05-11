@@ -32,8 +32,7 @@ namespace PortfolioWebApp.Services
             _authenticationStateProvider = authenticationStateProvider;
         }
 
-        public async Task<User?> ValidateCredentialsAsync(string username, string password)
-        {
+        public async Task<User?> ValidateCredentialsAsync(string username, string password) {
             var normalized = username.Trim().ToLower();
 
             var user = await _dbContext.Users
@@ -52,8 +51,8 @@ namespace PortfolioWebApp.Services
         }
 
 
-        public async Task<bool> LoginAsync(User? user, bool rememberMe)
-        {
+        public async Task<bool> LoginAsync(User? user, bool rememberMe) {
+            
             if (user is null) {
                 return false;
             }

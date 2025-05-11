@@ -14,7 +14,7 @@
                     <MudText Typo="Typo.body2" Color="Color.Secondary">Create your account</MudText>
                 </div>
 
-                <EditForm Model="@RegisterData" OnValidSubmit="HandleRegister" method="post" FormName="RegisterForm">
+                <EditForm Model="@RegisterData" OnValidSubmit="HandleRegister" method="post" FormName="RegisterData">
                     <MudStaticTextField @bind-Value="@RegisterData.Username"
                                         Label="Username"
                                         For="@(() => RegisterData.Username)"

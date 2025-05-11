@@ -11,6 +11,7 @@ namespace PortfolioWebApp.Models
 
         public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<Friendship> Friendships { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -44,6 +45,34 @@ namespace PortfolioWebApp.Models
             // Optional: Konventionen für Tabellen-/Spaltennamen
             modelBuilder.Entity<User>().ToTable("appuser");
             modelBuilder.Entity<UserRole>().ToTable("userrole");
+            
+            
+            
+            
+            modelBuilder.Entity<Friendship>(entity =>
+            {
+                entity.ToTable("friendship");
+
+                entity.HasOne(f => f.User1)
+                    .WithMany()
+                    .HasForeignKey("user1")
+                    .HasConstraintName("fk_friendship_user1")
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(f => f.User2)
+                    .WithMany()
+                    .HasForeignKey("user2")
+                    .HasConstraintName("fk_friendship_user2")
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasKey("user1", "user2");
+
+                entity.Property(f => f.Created)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
+            
+            
         }
     }
 }

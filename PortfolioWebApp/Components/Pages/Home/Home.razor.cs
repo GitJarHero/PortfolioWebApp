@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 
-namespace PortfolioWebApp.Components.Pages
+namespace PortfolioWebApp.Components.Pages.Home
 {
     public partial class Home : ComponentBase
     {
