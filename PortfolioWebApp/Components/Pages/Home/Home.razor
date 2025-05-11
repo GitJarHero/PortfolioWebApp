@@ -1,10 +1,121 @@
 @page "/Home"
-
 @using PortfolioWebApp.Components.Layout
 @layout MainLayout
+@rendermode InteractiveServer
+@inject IJSRuntime JS
 
 
-<h3>Welcome to your Web Application!</h3>
-<p>
-    This is the home page. You can start navigating through the app using the menu.
-</p>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
+    <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Welcome to MyApp</MudText>
+
+    <MudGrid Class="mt-6" GutterSize="3">
+        <!-- Left: Feature Cards -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="mb-3">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">🔐 Login & Registration</MudText>
+                    <MudText Typo="Typo.body2">Create an account or sign in to unlock all features.</MudText>
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Class="mb-3">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">👥 Manage Friends</MudText>
+                    <MudText Typo="Typo.body2">Search, add or remove friends from your list.</MudText>
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Class="mb-3">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">💬 Private Chats</MudText>
+                    <MudText Typo="Typo.body2">Start one-on-one conversations with your friends.</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Right: Global Chat -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-2">🌐 Global Chat</MudText>
+
+                    <!-- Chat message area -->
+                    <div @ref="MessagesContainer" style="max-height: 500px;min-height: 500px; overflow-y: auto;">
+                        <MudList T="ChatMessage" Items="LastMessages" Dense="true">
+                            @foreach (var msg in LastMessages)
+                            {
+                                <ItemTemplate Context="msg">
+                                    <MudListItem>
+                                        <MudListItemText>
+                                            <b>@msg.User:</b> @msg.Content
+                                        </MudListItemText>
+                                    </MudListItem>
+                                </ItemTemplate>                
+                            }
+                
+                        </MudList>
+                    </div>
+
+                    <!-- Input & Send Button -->
+                    <MudGrid Class="mt-3" AlignItems="Center">
+                        <MudItem xs="9">
+                            <MudTextField @bind-Value="NewMessage" Placeholder="Type your message..." Variant="Variant.Outlined" FullWidth="true" />
+                        </MudItem>
+                        <MudItem xs="3" Class="h-100">
+                            <MudButton Class="h-100" Variant="Variant.Filled" Color="Color.Primary" OnClick="SendMessage" FullWidth="true">Send</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<script src="js/Home/globalchat.js"></script>
+
+@code {
+    private ElementReference MessagesContainer;
+
+    private string NewMessage = string.Empty;
+
+    private List<ChatMessage> LastMessages = new()
+    {
+        new() { User = "Anna", Content = "Hello everyone!" },
+        new() { User = "Ben", Content = "How are you all doing?" },
+        new() { User = "Clara", Content = "Nice weather today." },
+        new() { User = "David", Content = "Any tips for Blazor?" },
+        new() { User = "Eva", Content = "I love MudBlazor!" },
+        new() { User = "Felix", Content = "Good morning!" },
+        new() { User = "Gina", Content = "What's up?" },
+        new() { User = "Hans", Content = "Anyone using SignalR?" },
+        new() { User = "Ina", Content = "Looking for new friends." },
+        new() { User = "Jonas", Content = "Anyone wants to chat?" }
+    };
+
+    public class ChatMessage
+    {
+        public string User { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+    }
+
+    private async void SendMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(NewMessage))
+        {
+            LastMessages.Add(new ChatMessage
+            {
+                User = "You", // Can be replaced with the logged-in username
+                Content = NewMessage
+            });
+
+            // Optional: keep only last 50 messages
+            if (LastMessages.Count > 50)
+                LastMessages.RemoveAt(0);
+
+            NewMessage = string.Empty;
+            
+            await Task.Delay(50); // ensures the new message is present in the dom when we invoke scrollToBottom
+            await JS.InvokeVoidAsync("scrollToBottom", MessagesContainer);
+        }
+    }
+}

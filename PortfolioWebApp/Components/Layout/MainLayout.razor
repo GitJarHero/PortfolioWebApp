@@ -1,23 +1,30 @@
 ﻿@inherits LayoutComponentBase
+@inject IHttpContextAccessor HttpContextAccessor
 
-<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme"/>
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <!-- AppBar on top -->
     <MudAppBar Elevation="1" Fixed="true" Height="60px" Dense="true">
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        Color="Color.Inherit"
                        Edge="Edge.Start"
                        OnClick="@ToggleDrawer"/>
-        
         <MudSpacer/>
-        <MudText Typo="Typo.h6" Class="ml-2">My Web Application</MudText>
+        <MudText Typo="Typo.h6" Class="ml-2">
+            <MudIcon Icon="@Icons.Custom.Brands.MudBlazor"></MudIcon>
+            MudBlazor
+        </MudText>
         <MudSpacer/>
-        
-        <MudSwitch @bind-Value="_isDarkMode" Color="Color.Primary" Class="ma-4" T="bool" Label="Toggle Light/Dark Mode"/>
+        <MudSwitch T="bool"
+                   Value="_isDarkMode"
+                   ValueChanged="OnDarkModeChanged"
+                   Color="Color.Primary"
+                   Class="ma-4"
+                   Label="Toggle Light/Dark Mode" />
+
         <AuthorizeView>
             <Authorized>
                 <MudText Color="Color.Success" Typo="Typo.body1" Class="mr-2">Logged in as: @context.User.Identity?.Name</MudText>
@@ -28,24 +35,40 @@
         </AuthorizeView>
     </MudAppBar>
 
-    <!-- Side Bar (MudDrawer) -->
     <NavMenu @bind-Open="_open" />
 
-    <!-- Main Content -->
-    <MudMainContent Class="pt-16 px-16">
-        <MudContainer Class="mt-6">
+    <MudMainContent>
+        <MudContainer>
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
+@inject IJSRuntime JS
+
 @code {
     private bool _open = true;
     private MudTheme _theme = new();
     private bool _isDarkMode;
+    private bool _firstRender = true;
+    
+    protected override void OnInitialized() {
+        // read dark mode cookie on server rendering to avoid 'flash of light mode'
+        var context = HttpContextAccessor.HttpContext;
+        if (context != null) {
+            var cookie = context.Request.Cookies["darkMode"];
+            if (bool.TryParse(cookie, out var result)) {
+                _isDarkMode = result;
+            }
+        }
+    }
 
-    private void ToggleDrawer()
-    {
+    private async Task OnDarkModeChanged(bool value) {
+        _isDarkMode = value;
+        await JS.InvokeVoidAsync("cookieHelper.setDarkMode", _isDarkMode.ToString().ToLower());
+    }
+    
+    private void ToggleDrawer() {
         _open = !_open;
     }
 }

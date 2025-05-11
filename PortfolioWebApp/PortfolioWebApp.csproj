@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="3.2.0" />
+      <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.15" />
       <PackageReference Include="MudBlazor" Version="8.6.0" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     </ItemGroup>
@@ -20,7 +21,6 @@
 
     <ItemGroup>
       <Folder Include="Components\Pages\Chats\" />
-      <Folder Include="Hubs\" />
     </ItemGroup>
 
 </Project>
