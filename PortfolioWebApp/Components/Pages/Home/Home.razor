@@ -13,7 +13,7 @@
 @inject NavigationManager Navigation
 @inject AppDbContext DbContext
 @inject AuthenticationStateProvider AuthStateProvider
-
+@inject IHttpContextAccessor http
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
     <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Welcome to MyApp</MudText>
@@ -149,8 +149,16 @@
 
     private async Task SetupSignalRConnection() {
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/globalhub"))
+            .WithUrl(Navigation.ToAbsoluteUri("/globalhub"), options => {
+                // add the auth_cookie defined in program.cs so the hub can identify the user.
+                options.Cookies.Add( 
+                    new Uri(Navigation.BaseUri), 
+                    new System.Net.Cookie("auth_cookie", http.HttpContext!.Request.Cookies
+                        .FirstOrDefault(c => c.Key == "auth_cookie").Value)
+                );
+            })
             .Build();
+
 
         hubConnection.On<string, string>("ReceiveMessage", async (user, message) =>
         {

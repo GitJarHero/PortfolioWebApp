@@ -6,7 +6,7 @@ using PortfolioWebApp.Models.Entities;
 
 namespace PortfolioWebApp.Services
 {
-    public interface IUserRegistrationService
+    public interface IUserRegistrationService 
     {
         Task<bool> RegisterAsync(string username, string password);
     }

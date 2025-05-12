@@ -1,23 +1,27 @@
-
-
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace PortfolioWebApp.Hubs;
 
-[AllowAnonymous]
-public class GlobalChatHub : Hub
-{
+public class GlobalChatHub : Hub {
+    
     public override Task OnDisconnectedAsync(Exception? exception) {
-        Console.WriteLine($"Client disconnected: {Context.ConnectionId}");
+        var username = Context.User?.Identity?.IsAuthenticated == true
+            ? Context.User.Identity.Name
+            : "Anonymous";
+
+        Console.WriteLine($"User disconnected: {username} (ConnectionId: {Context.ConnectionId})");
         return base.OnDisconnectedAsync(exception);
     }
 
     public async Task JoinChat() {
-        Console.WriteLine($"Client connected: {Context.ConnectionId}");
+        var username = Context.User?.Identity?.IsAuthenticated == true
+            ? Context.User.Identity.Name
+            : "Anonymous";
+
+        Console.WriteLine($"User connected: {username} (ConnectionId: {Context.ConnectionId})");
     }
 
-    public async Task BroadcastMessage(string user, string message) {
-        await Clients.All.SendAsync("ReceiveMessage", user, message);
+    public async Task BroadcastMessage(string fromUser, string message) {
+        await Clients.All.SendAsync("ReceiveMessage", fromUser, message);
     }
 }
