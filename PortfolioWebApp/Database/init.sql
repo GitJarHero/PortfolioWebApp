@@ -163,3 +163,16 @@ VALUES
     ('Everything compiles, yay!', 6, '2025-05-05 08:10:00'),
     ('Creating reusable components.', 7, '2025-05-05 09:25:00'),
     ('Cheers from the dev cave!', 8, '2025-05-05 10:40:00');
+
+
+CREATE TABLE IF NOT EXISTS directmessage (
+    id          SERIAL PRIMARY KEY,
+    content     TEXT NOT NULL,
+    "from"      INT NOT NULL REFERENCES appuser(id),
+    "to"        INT NOT NULL REFERENCES appuser(id),
+    created     TIMESTAMP NOT NULL,
+    delivered   TIMESTAMP,
+    read        TIMESTAMP,
+    
+    CHECK ("from" <> "to")
+);

@@ -13,7 +13,6 @@ public class GlobalChatService {
     }
 
     public async Task SendMessage(GlobalMessage message) {
-        // TODO: Optional: Send message to SignalR hub here
         await SaveMessage(message);
     }
 
