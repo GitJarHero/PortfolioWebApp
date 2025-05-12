@@ -218,14 +218,11 @@
 
         string datePart = "";
 
-        if (local.Date != now.Date)
-        {
-            if (local.Year != now.Year)
-            {
+        if (local.Date != now.Date) {
+            if (local.Year != now.Year) {
                 datePart = local.ToString("dd.MM.yyyy");
             }
-            else
-            {
+            else {
                 datePart = local.ToString("dd.MM");
             }
         }
