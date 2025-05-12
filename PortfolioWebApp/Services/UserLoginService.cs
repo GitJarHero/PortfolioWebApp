@@ -39,7 +39,7 @@ namespace PortfolioWebApp.Services
                 .Include(u => u.Roles)
                 .FirstOrDefaultAsync(u => u.UserName.ToLower() == normalized);
 
-            if (user == null || user.State != UserState.Active) {
+            if (user == null || user.State != State.Active) {
                 return null;
             }
 

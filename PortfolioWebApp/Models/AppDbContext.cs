@@ -12,6 +12,8 @@ namespace PortfolioWebApp.Models
         public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
+        public DbSet<GlobalMessage> GlobalMessages { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,7 +39,7 @@ namespace PortfolioWebApp.Models
                         j.ToTable("map_user_role");
                     });
 
-            // UserState als Integer speichern
+            // State als Integer speichern
             modelBuilder.Entity<User>()
                 .Property(u => u.State)
                 .HasConversion<int>();
@@ -72,6 +74,27 @@ namespace PortfolioWebApp.Models
             });
 
             
+            modelBuilder.Entity<GlobalMessage>(entity => {
+                entity.ToTable("globalmessage");
+
+                entity.HasKey(m => m.Id);
+
+                entity.HasOne(m => m.User)
+                    .WithMany()
+                    .HasForeignKey("userid")
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(m => m.Created)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(m => m.Content)
+                    .IsRequired()
+                    .HasMaxLength(255);
+            });
+            modelBuilder.Entity<GlobalMessage>()
+                .Property(m => m.State)
+                .HasConversion<int>();
+
             
         }
     }

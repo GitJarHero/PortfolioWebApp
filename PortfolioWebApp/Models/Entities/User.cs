@@ -26,7 +26,7 @@ namespace PortfolioWebApp.Models.Entities
 
         [Required]
         [Column("stateid")]
-        public UserState State { get; set; }
+        public State State { get; set; }
         
         [Column("lastonline",TypeName = "timestamp without time zone")]
         public DateTime? LastOnline { get; set; }

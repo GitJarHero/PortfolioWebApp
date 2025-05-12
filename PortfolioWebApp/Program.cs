@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using PortfolioWebApp.Components;
+using PortfolioWebApp.Hubs;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Services;
 
@@ -54,12 +56,22 @@ builder.Services.AddScoped<UserLoginService>();
 builder.Services.AddScoped<FriendshipService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
+builder.Services.AddScoped<GlobalChatService>();
 
 builder.Logging.AddConsole();
 builder.Services.AddAntiforgery();
 
+builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        [ "application/octet-stream" ]);
+});
+
+
 var app = builder.Build();
 
+app.UseResponseCompression();
 
 app.UseExceptionHandler("/Error/ServerError");
 app.UseStatusCodePagesWithReExecute("/error/{0}");
@@ -87,5 +99,7 @@ app.MapGet("/Account/Logout", async (HttpContext context) =>
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapHub<GlobalChatHub>("/globalhub");
 
 app.Run();

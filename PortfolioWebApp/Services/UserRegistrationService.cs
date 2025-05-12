@@ -36,7 +36,7 @@ namespace PortfolioWebApp.Services
             {
                 UserName = username,
                 Password = _passwordHashingService.Hash(password),
-                State = UserState.Active
+                State = State.Active
             };
             // Get the USER role
             var userRole = await _dbContext.UserRoles.FirstOrDefaultAsync(r => r.Name == "user");
