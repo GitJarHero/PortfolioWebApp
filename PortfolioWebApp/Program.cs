@@ -27,7 +27,8 @@ builder.Services.AddAuthentication("auth_cookie")
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Error/Forbidden";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
+        options.SlidingExpiration = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Strict;
         
@@ -61,8 +62,16 @@ builder.Services.AddScoped<FriendshipService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
 builder.Services.AddScoped<GlobalChatService>();
+builder.Services.AddScoped<DirectChatService>();
 
+builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+var efLoggingEnabled = builder.Configuration.GetValue<bool>("EFLogging:EnableDbCommandLogging");
+if (!efLoggingEnabled) {
+    builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
+}
+
+
 builder.Services.AddAntiforgery();
 
 builder.Services.AddSignalR();
