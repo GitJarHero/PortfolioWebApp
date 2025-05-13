@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using PortfolioWebApp.Components;
+using PortfolioWebApp.Components.Pages.Home;
 using PortfolioWebApp.Hubs;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Services;
+using PortfolioWebApp.Services.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +41,8 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+
 
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
@@ -91,10 +95,23 @@ app.MapGet("/", context => {
     return Task.CompletedTask;
 });
 
-app.MapGet("/Account/Logout", async (HttpContext context) =>
-{
+app.MapGet("/Account/Logout", async (HttpContext context) => {
     await context.SignOutAsync("auth_cookie");
     return Results.Redirect("/");
+});
+
+app.MapGet("/api/globalchat", async (AppDbContext dbContext) => {
+    var messages = await dbContext.GlobalMessages
+        .Include(m => m.User)
+        .OrderBy(m => m.Created)
+        .Take(50)
+        .ToListAsync();
+    var messageDtos = messages.Select(m => new Home.GlobalChatMessageDto {
+        User = m.User.UserName,
+        Content = m.Content,
+        Created = m.Created
+    });
+    return Results.Json(messageDtos);
 });
 
 app.MapRazorComponents<App>()

@@ -1,36 +1,84 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR;
-using PortfolioWebApp.Models;
-using PortfolioWebApp.Models.Entities;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR.Client;
+using PortfolioWebApp.Components.Pages.Home;
 using PortfolioWebApp.Hubs;
 
-namespace PortfolioWebApp.Services;
+namespace PortfolioWebApp.Services.Chat;
 
 public class GlobalChatService {
     
-    private readonly AppDbContext _dbContext;
-    private readonly IHubContext<GlobalChatHub> _globalChatHubContext;
+    private readonly HttpClient _httpClient;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IConfiguration _config;
+    private NavigationManager _navigation;
 
-    public GlobalChatService(AppDbContext dbContext, IHubContext<GlobalChatHub> hubContext) {
-        _dbContext = dbContext;
-        _globalChatHubContext = hubContext;
+    private HubConnection? hubConnection;
+    
+    public event Func<Home.GlobalChatMessageDto, Task>? OnMessageCallback;
+
+
+    
+    public GlobalChatService(HttpClient httpClient, 
+                                IHttpContextAccessor httpContextAccessor,
+                                IConfiguration config,
+                                NavigationManager navigation) {
+        _httpClient = httpClient;
+        _httpContextAccessor = httpContextAccessor;
+        _config = config;
+        _navigation = navigation;
+        
+        if (_httpClient.BaseAddress == null) {
+            _httpClient.BaseAddress = new Uri("http://localhost:5120");
+        }
+        
+        var context = _httpContextAccessor.HttpContext;
+        var cookie = context?.Request?.Cookies["auth_cookie"];
+        if (!string.IsNullOrEmpty(cookie)) {
+           _httpClient.DefaultRequestHeaders.Add("Cookie", $"auth_cookie={cookie}");
+        }
     }
 
-    public async Task SendMessage(GlobalMessage message) {
-        await SaveMessage(message);
-        await _globalChatHubContext.Clients.All.SendAsync("ReceiveMessage", message.User.UserName, message.Content);
+
+    public async Task Connect() {
+        var url = _config["SignalR:Url:GlobalChatHub"];
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(_navigation.ToAbsoluteUri(url), options => {
+                // add the auth_cookie defined in program.cs so the hub can identify the user.
+                options.Cookies.Add( 
+                    new Uri(_navigation.BaseUri), 
+                    new System.Net.Cookie("auth_cookie", _httpContextAccessor.HttpContext!.Request.Cookies
+                        .FirstOrDefault(c => c.Key == "auth_cookie").Value)
+                );
+            })
+            .Build();
+
+
+        hubConnection.On<Home.GlobalChatMessageDto>("ReceiveMessage", async (message) => {
+            if (OnMessageCallback != null) {
+                await OnMessageCallback.Invoke(message);
+            }
+        });
+
+        await hubConnection.StartAsync();
+        await hubConnection.SendAsync("JoinChat");
+    }
+    
+
+    public async Task SendMessage(Home.GlobalChatMessageDto message) {
+        if (hubConnection!.State == HubConnectionState.Connected) {
+            await hubConnection.SendAsync("BroadcastMessage", message);    
+        }
+        else {
+            Console.WriteLine("Failed to send message. Not connected to hub!");
+        }
     }
 
-    public async Task<List<GlobalMessage>> LoadLatestMessages(int n) {
-        return await _dbContext.GlobalMessages
-            .Include(m => m.User)
-            .OrderByDescending(m => m.Created)
-            .Take(n)
-            .ToListAsync();
-    }
-
-    private async Task SaveMessage(GlobalMessage message) {
-        _dbContext.GlobalMessages.Add(message);
-        await _dbContext.SaveChangesAsync();
+    public async Task<List<Home.GlobalChatMessageDto>> LoadLatestMessages() {
+        
+        var response = await _httpClient.GetAsync("/api/globalchat");
+        var messages = await response.Content.ReadFromJsonAsync<List<Home.GlobalChatMessageDto>>();
+       
+        return messages ?? new List<Home.GlobalChatMessageDto>();
     }
 }

@@ -1,20 +1,13 @@
 @page "/Home"
-@using Microsoft.AspNetCore.SignalR.Client
-@using Microsoft.EntityFrameworkCore
+
 @using PortfolioWebApp.Components.Layout
-@using PortfolioWebApp.Models
-@using PortfolioWebApp.Models.Entities
-@using PortfolioWebApp.Services
+@using PortfolioWebApp.Services.Chat
 @layout MainLayout
 @rendermode InteractiveServer
 
-@inject IJSRuntime JS
+@inject IJSRuntime Js
 @inject GlobalChatService GlobalChatService
-@inject NavigationManager Navigation
-@inject AppDbContext DbContext
 @inject AuthenticationStateProvider AuthStateProvider
-@inject IHttpContextAccessor http
-@inject IConfiguration config
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
     <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Welcome to MyApp</MudText>
@@ -51,15 +44,15 @@
                     <MudText Typo="Typo.h6" Class="mb-2">🌐 Global Chat</MudText>
 
                     <!-- Chat message area -->
-                    <div @ref="MessagesContainer" style="max-height: 500px;min-height: 500px; overflow-y: auto;">
-                        @if (IsLoading)
+                    <div @ref="_messagesContainer" style="max-height: 500px;min-height: 500px; overflow-y: auto;">
+                        @if (_isLoading)
                         {
                             <MudText Typo="Typo.body2" Class="pl-2">Loading messages...</MudText>
                         }
                         else
                         {
-                            <MudList T="ChatMessage" Items="LastMessages" Dense="true">
-                                @foreach (var msg in LastMessages)
+                            <MudList T="GlobalChatMessageDto" Items="LastMessages" Dense="true">
+                                @foreach (var msg in _lastMessages)
                                 {
                                     <ItemTemplate Context="msg">
                                         <MudListItem>
@@ -79,10 +72,10 @@
                     <!-- Input & Send Button -->
                     <MudGrid Class="mt-3" AlignItems="Center">
                         <MudItem xs="9">
-                            <MudTextField @bind-Value="NewMessage" Placeholder="Type your message..." Variant="Variant.Outlined" FullWidth="true" Disabled="@IsLoading"/>
+                            <MudTextField @bind-Value="_newMessage" Placeholder="Type your message..." Variant="Variant.Outlined" FullWidth="true" Disabled="@_isLoading"/>
                         </MudItem>
                         <MudItem xs="3" Class="h-100">
-                            <MudButton Class="h-100" Variant="Variant.Filled" Color="Color.Primary" OnClick="SendMessage" FullWidth="true" Disabled="@IsLoading">Send</MudButton>
+                            <MudButton Class="h-100" Variant="Variant.Filled" Color="Color.Primary" OnClick="SendMessage" FullWidth="true" Disabled="@_isLoading">Send</MudButton>
                         </MudItem>
                     </MudGrid>
                 </MudCardContent>
@@ -94,16 +87,13 @@
 <script src="js/Home/globalchat.js"></script>
 
 @code {
-    private ElementReference MessagesContainer;
-    private string NewMessage = string.Empty;
-    private List<ChatMessage> LastMessages = new();
-    private HubConnection? hubConnection;
-    private bool IsLoading = true;
-    private bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
+    private ElementReference _messagesContainer;
+    private string _newMessage = string.Empty;
+    private List<GlobalChatMessageDto> _lastMessages = new();
+    private bool _isLoading = true;
     private bool _initialized = false;
-    private User? Myself;
 
-    public class ChatMessage {
+    public class GlobalChatMessageDto {
         public string User { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public DateTime Created { get; set; } // ⬅️ neu
@@ -113,103 +103,38 @@
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender && !_initialized) {
             _initialized = true;
+            
+            // register a callback
+            GlobalChatService.OnMessageCallback += async (message) => {
+                _lastMessages.Add(message);
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(50);
+                await Js.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+            };
 
-            await LoadMyself();
-            await SetupSignalRConnection();
-            await LoadMessagesFromDatabase();
-
-            await JS.InvokeVoidAsync("scrollToBottom", MessagesContainer);
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadMyself() {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity is not null && user.Identity.IsAuthenticated) {
-            var username = user.Identity.Name?.ToLower();
-
-            if (!string.IsNullOrWhiteSpace(username)) {
-                Myself = await DbContext.Users
-                    .Include(u => u.Roles)
-                    .FirstOrDefaultAsync(u => u.UserName.ToLower() == username);
-
-                if (Myself == null) {
-                    Console.WriteLine("⚠️ Logged-in user not found in database.");
-                }
-            }
-        }
-
-        if (Myself == null) {
-            throw new Exception("WTF !!!"); // should never happen as Home.razor is only available to authenticated users
-        }
-    }
-
-    private async Task SetupSignalRConnection() {
-        var url = config["SignalR:Url:GlobalChatHub"];
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri(url), options => {
-                // add the auth_cookie defined in program.cs so the hub can identify the user.
-                options.Cookies.Add( 
-                    new Uri(Navigation.BaseUri), 
-                    new System.Net.Cookie("auth_cookie", http.HttpContext!.Request.Cookies
-                        .FirstOrDefault(c => c.Key == "auth_cookie").Value)
-                );
-            })
-            .Build();
-
-
-        hubConnection.On<string, string>("ReceiveMessage", async (user, message) => {
-            LastMessages.Add(new ChatMessage { User = user, Content = message, Created = DateTime.Now });
+            await GlobalChatService.Connect();
+            
+            List<GlobalChatMessageDto> messages = await GlobalChatService.LoadLatestMessages();
+            _lastMessages.AddRange(messages);
+            _isLoading = false;
             await InvokeAsync(StateHasChanged);
             await Task.Delay(50);
-            await JS.InvokeVoidAsync("scrollToBottom", MessagesContainer);
-        });
-
-        await hubConnection.StartAsync();
-        await hubConnection.SendAsync("JoinChat");
+            await Js.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+        }
     }
 
-    // TODO: while db messages are loading, the signalR connection can already add messages to LastMessages
-    // TODO: after loading db messages, check if LastMessages.size() > 0 and if so, add db messages to last messages and sort by date
-    private async Task LoadMessagesFromDatabase() {
-        IsLoading = true;
+    private async Task SendMessage() {
+        if (string.IsNullOrWhiteSpace(_newMessage)) return;
 
-        var messages = await GlobalChatService.LoadLatestMessages(50);
-        LastMessages = messages
-            .OrderBy(m => m.Created)
-            .Select(m => new ChatMessage {
-                User = m.User.UserName,
-                Content = m.Content,
-                Created = m.Created
-            })
-            .ToList();
-        
-        IsLoading = false;
-
-        await InvokeAsync(StateHasChanged);
-        await JS.InvokeVoidAsync("scrollToBottom", MessagesContainer);
-    }
-
-    private async void SendMessage() {
-        
-        if (string.IsNullOrWhiteSpace(NewMessage) || !IsConnected || Myself == null)
-            return;
-
-        var messageEntity = new GlobalMessage {
-            Content = NewMessage,
+        var messageEntity = new GlobalChatMessageDto() {
+            Content = _newMessage,
             Created = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
-            User = Myself!,
-            State = State.Active
+            User = AuthStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name,
         };
-
-        // GlobalChatService uses IHubContext<GlobalChatHub> to send the message to everyone connected to the hub
+        
         await GlobalChatService.SendMessage(messageEntity);
-
-        NewMessage = string.Empty;
-        await Task.Delay(50);
-        await JS.InvokeVoidAsync("scrollToBottom", MessagesContainer);
+        _newMessage = string.Empty;
+        await InvokeAsync(StateHasChanged);
     }
     
     private string FormatTimestamp(DateTime dt) {
