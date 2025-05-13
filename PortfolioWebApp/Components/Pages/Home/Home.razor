@@ -14,6 +14,7 @@
 @inject AppDbContext DbContext
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IHttpContextAccessor http
+@inject IConfiguration config
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
     <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Welcome to MyApp</MudText>
@@ -146,8 +147,9 @@
     }
 
     private async Task SetupSignalRConnection() {
+        var url = config["SignalR:Url:GlobalChatHub"];
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/globalhub"), options => {
+            .WithUrl(Navigation.ToAbsoluteUri(url), options => {
                 // add the auth_cookie defined in program.cs so the hub can identify the user.
                 options.Cookies.Add( 
                     new Uri(Navigation.BaseUri), 

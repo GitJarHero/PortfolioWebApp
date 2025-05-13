@@ -80,7 +80,7 @@ if (!app.Environment.IsDevelopment()) {
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -100,6 +100,6 @@ app.MapGet("/Account/Logout", async (HttpContext context) =>
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapHub<GlobalChatHub>("/globalhub");
+app.MapHub<GlobalChatHub>("/globalchathub");
 
 app.Run();
