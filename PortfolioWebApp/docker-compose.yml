@@ -9,7 +9,7 @@ services:
       timeout: 5s
       retries: 5
     build:
-      context: ./Database # otherwise Database/Dockerfile won't COPY the "./init.sql"
+      context: ./Dev/Database # otherwise Database/Dockerfile won't COPY the "./init.sql"
       dockerfile: ./Dockerfile # this path is relative to 'context:'
     ports:
       - "6543:5432" # Host:Container
