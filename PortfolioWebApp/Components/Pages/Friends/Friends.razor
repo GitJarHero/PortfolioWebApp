@@ -7,13 +7,104 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
-    <MudGrid>
-        <!-- Left side -->
-        <MudItem xs="12" md="8" Style="background-color:#6f42c1">
-            <span>under construction</span>
+    <MudGrid Spacing="4" >
+        <!-- Left side (Friend Requests & Search)-->
+        <MudItem xs="12" md="8">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Style="height: calc(100vh - 48px); padding: 16px 0 16px 0;">
+                <MudCard Elevation="4" Class="pa-0" Style="height: 100%; display: flex; flex-direction: column; gap: 32px; overflow-y: auto;">
+
+                    <!-- Top Section: Friend Requests -->
+                    <MudPaper Elevation="2" Class="pa-4" Style="border-left: 4px solid #2196F3;">
+                        <MudItem Style="display: flex; align-items: center;">
+                            <MudText Typo="Typo.h6" Color="Color.Primary">Friend Requests</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Secondary"/>
+                        </MudItem>
+
+                        <MudGrid Class="mt-1">
+                            <!-- Incoming Section -->
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2" Color="Color.Info">Incoming</MudText>
+                                @foreach (var user in _incomingRequests) {
+                                    <MudPaper Class="pa-2 mb-2" Style="background-color: transparent;">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                <MudAvatar Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
+                                                <MudText Typo="Typo.body1">@user</MudText>
+                                            </MudStack>
+                                            <MudStack Row="true" Spacing="1">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"/>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"/>
+                                            </MudStack>
+                                        </MudStack>
+                                    </MudPaper>
+                                }
+                                @if (_incomingRequests.Count == 0) {
+                                    <span>You have no friend requests</span>
+                                }
+                            </MudItem>
+
+                            <!-- Outgoing Section -->
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2" Color="Color.Info">Outgoing</MudText>
+                                @foreach (var user in _outgoingRequests) {
+                                    <MudPaper Class="pa-2 mb-2" Style="background-color: transparent;">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                <MudAvatar Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Small"/>
+                                                <MudText Typo="Typo.body1">@user</MudText>
+                                            </MudStack>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Warning" Size="Size.Small"/>
+                                        </MudStack>
+                                    </MudPaper>
+                                }
+                                @if (_outgoingRequests.Count == 0) {
+                                    <span>No friend requests were sent</span>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+
+                    <!-- Bottom Section: Search & Add Users -->
+                    <MudPaper Elevation="2" Class="pa-4" Style="border-left: 4px solid #2196F3;">
+                        <MudItem Style="display: flex; align-items: center;">
+                            <MudText Typo="Typo.h6" Color="Color.Primary">Search & Add Users</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Primary" />
+                        </MudItem>
+                         
+
+                        <MudTextField @bind-Value="_searchTerm"
+                                      Immediate="true"
+                                      Label="Search Users"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Class="mt-3 mb-3" />
+
+                        @if (!string.IsNullOrWhiteSpace(_searchTerm))
+                        {
+                            <MudList T="string" Dense="true">
+                                @foreach (var user in _dummyUsers.Where(u => u.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    <MudListItem Style="cursor: pointer;" Class="hover:bg-grey-darken-3">
+                                        <MudAvatar Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-2" />
+                                        @user
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Primary">Start typing to search for users...</MudText>
+                        }
+                    </MudPaper>
+
+                </MudCard>
+            </MudContainer>
         </MudItem>
 
-        <!-- Right side -->
+
+        <!-- Right side (Your Friends) -->
         <MudItem xs="12" md="4">
             
             <MudContainer MaxWidth="MaxWidth.ExtraSmall" Style="height: calc(100vh - 48px); padding: 16px 0 16px 0;">
@@ -62,6 +153,7 @@
 </MudContainer>
 
 @code {
+    // -------- Friends List -----------
     private bool _initialized;
     private string _query = string.Empty;
     private List<UserDto> friendsList = new();
@@ -69,10 +161,29 @@
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender && !_initialized) {
             _initialized = true;
-            string myUsername = AuthenticationStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
-            List<UserDto> myFriends = FriendshipService.GetFriendsOfUser(myUsername);
+            List<UserDto> myFriends = FriendshipService.GetFriends();
             friendsList.AddRange(myFriends);
             await InvokeAsync(StateHasChanged);
         }
     }
+
+    // -------- Friend Requests -----------
+
+    private List<string> _incomingRequests = new();
+
+    private List<string> _outgoingRequests = new();
+    
+    
+    // -------- Search Users -----------
+    
+    private string _searchTerm = string.Empty;
+
+    private List<string> _dummyUsers = new()
+    {
+        "Alice Johnson",
+        "Bob Smith",
+        "Charlie Daniels",
+        "David Lee",
+        "Eva Green"
+    };
 }

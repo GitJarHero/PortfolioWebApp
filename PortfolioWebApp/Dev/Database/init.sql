@@ -21,12 +21,13 @@ INSERT INTO state (name) VALUES
 -- Benutzer-Tabelle
 CREATE TABLE IF NOT EXISTS appuser (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(20) NOT NULL UNIQUE,
+    username VARCHAR(20) NOT NULL, 
     password VARCHAR(255) NOT NULL,
     stateid SMALLINT NOT NULL DEFAULT 1 REFERENCES state(id),
     lastonline TIMESTAMP,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_appuser_username_lower ON appuser (LOWER(username));
 
 INSERT INTO appuser (username, password) VALUES
     ('test123', 'cZ4W0HdMlQWfb7kZpUVM0gd3qtvUNJ+LdVWAUoRdYdnYwlH8UmAJbORrmfPSOlUa'),
