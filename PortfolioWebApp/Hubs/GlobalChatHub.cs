@@ -17,21 +17,20 @@ public class GlobalChatHub : Hub {
     }
 
     public override Task OnDisconnectedAsync(Exception? exception) {
-        var username = Context.User?.Identity?.IsAuthenticated == true
-            ? Context.User.Identity.Name
-            : "Anonymous";
-
+        var username = Context.User?.Identity?.IsAuthenticated == true ? Context.User.Identity.Name : "Anonymous";
+        
         _logger.LogInformation("User disconnected: {Username} (ConnectionId: {ConnectionId})", username, Context.ConnectionId);
         return base.OnDisconnectedAsync(exception);
     }
 
-    public async Task JoinChat() {
-        var username = Context.User?.Identity?.IsAuthenticated == true
-            ? Context.User.Identity.Name
-            : "Anonymous";
+    public override Task OnConnectedAsync() {
+        var username = Context.User?.Identity?.IsAuthenticated == true ? Context.User.Identity.Name : "Anonymous";
 
         _logger.LogInformation("User connected: {Username} (ConnectionId: {ConnectionId})", username, Context.ConnectionId);
+        return base.OnConnectedAsync();
     }
+
+
 
     public async Task BroadcastMessage(Home.GlobalChatMessageDto messageDto) {
         var userName = Context.User?.Identity?.Name;

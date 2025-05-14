@@ -61,7 +61,6 @@ public class GlobalChatService {
         });
 
         await hubConnection.StartAsync();
-        await hubConnection.SendAsync("JoinChat");
     }
     
 
@@ -74,6 +73,12 @@ public class GlobalChatService {
         }
     }
 
+    public async Task Disconnect() {
+        if (hubConnection != null && hubConnection.State != HubConnectionState.Disconnected) {
+            await hubConnection.DisposeAsync();
+        }
+    }
+    
     public async Task<List<Home.GlobalChatMessageDto>> LoadLatestMessages() {
         
         var response = await _httpClient.GetAsync("/api/globalchat");

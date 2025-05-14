@@ -46,7 +46,7 @@ public class TrackingCircuitHandler : CircuitHandler {
             }
         }
 
-        return Task.CompletedTask;
+        return base.OnConnectionUpAsync(circuit, cancellationToken);
     }
 
 
@@ -64,7 +64,7 @@ public class TrackingCircuitHandler : CircuitHandler {
             }
         }
 
-        return Task.CompletedTask;
+        return base.OnConnectionDownAsync(circuit, cancellationToken);
     }
 
 
