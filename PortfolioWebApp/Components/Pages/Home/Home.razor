@@ -45,24 +45,17 @@
 
                     <!-- Chat message area -->
                     <div @ref="_messagesContainer" style="max-height: 500px;min-height: 500px; overflow-y: auto;">
-                        @if (_isLoading)
-                        {
+                        @if (_isLoading) {
                             <MudText Typo="Typo.body2" Class="pl-2">Loading messages...</MudText>
                         }
-                        else
-                        {
+                        else {
                             <MudList T="GlobalChatMessageDto" Items="LastMessages" Dense="true">
-                                @foreach (var msg in _lastMessages)
-                                {
-                                    <ItemTemplate Context="msg">
-                                        <MudListItem>
-                                            <MudListItemText>
-                                                <b>@msg.User:</b> @msg.Content
-                                                <br />
-                                                <small class="text-muted">@FormatTimestamp(msg.Created)</small>
-                                            </MudListItemText>
-                                        </MudListItem>
-                                    </ItemTemplate>
+                                @foreach (var msg in _lastMessages) {
+                                    <MudListItem>
+                                        <b>@msg.User:</b> @msg.Content
+                                        <br />
+                                        <small class="text-muted">@FormatTimestamp(msg.Created)</small>
+                                    </MudListItem>
                                 }
                             </MudList>
                         }
@@ -107,19 +100,14 @@
             // register a callback
             GlobalChatService.OnMessageCallback += async (message) => {
                 _lastMessages.Add(message);
-                await InvokeAsync(StateHasChanged);
-                await Task.Delay(50);
-                await Js.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+                await UpdateChatBox();
             };
 
             await GlobalChatService.Connect();
-            
             List<GlobalChatMessageDto> messages = await GlobalChatService.LoadLatestMessages();
             _lastMessages.AddRange(messages);
             _isLoading = false;
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(50);
-            await Js.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+            await UpdateChatBox();
         }
     }
 
@@ -135,6 +123,12 @@
         await GlobalChatService.SendMessage(messageEntity);
         _newMessage = string.Empty;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateChatBox() {
+        await InvokeAsync(StateHasChanged); // re render
+        await Task.Delay(50);               // wait for DOM update
+        await Js.InvokeVoidAsync("scrollToBottom", _messagesContainer);
     }
     
     private string FormatTimestamp(DateTime dt) {
