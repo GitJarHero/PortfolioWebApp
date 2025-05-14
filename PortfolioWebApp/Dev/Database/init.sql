@@ -166,6 +166,20 @@ VALUES
     ('Cheers from the dev cave!', 8, '2025-05-05 10:40:00');
 
 
+CREATE TABLE IF NOT EXISTS friendrequest (
+    id          SERIAL PRIMARY KEY,
+    from_user   INT NOT NULL REFERENCES appuser(id) ON DELETE CASCADE,
+    to_user     INT NOT NULL REFERENCES appuser(id) ON DELETE CASCADE,
+    created     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Optional: prevent doubling requests
+    CONSTRAINT unique_friend_request UNIQUE (from_user, to_user)
+);
+
+
+
+
+
 CREATE TABLE IF NOT EXISTS directmessage (
     id          SERIAL PRIMARY KEY,
     content     TEXT NOT NULL,

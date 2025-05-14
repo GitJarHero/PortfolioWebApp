@@ -62,6 +62,7 @@ builder.Services.AddScoped<FriendshipService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
 builder.Services.AddScoped<GlobalChatService>();
+builder.Services.AddScoped<FriendRequestClientService>();
 builder.Services.AddScoped<DirectChatService>();
 
 builder.Logging.ClearProviders();
@@ -127,5 +128,6 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapHub<GlobalChatHub>("/globalchathub");
+app.MapHub<FriendRequestHub>("/friendrequesthub");
 
 app.Run();
