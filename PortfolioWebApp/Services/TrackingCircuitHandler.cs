@@ -6,8 +6,7 @@ namespace PortfolioWebApp.Services;
 
 public class TrackingCircuitHandler : CircuitHandler {
     
-    public class OnlineUserInfo
-    {
+    public class OnlineUserInfo {
         public string CircuitId { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new();
@@ -16,33 +15,31 @@ public class TrackingCircuitHandler : CircuitHandler {
     private static readonly ConcurrentDictionary<string, OnlineUserInfo> OnlineUsers = new();
     
     private readonly IHttpContextAccessor _httpContextAccessor;
+    
+    private readonly ILogger<TrackingCircuitHandler> _logger;
 
-    public TrackingCircuitHandler(IHttpContextAccessor httpContextAccessor)
-    {
+    public TrackingCircuitHandler(IHttpContextAccessor httpContextAccessor, ILogger<TrackingCircuitHandler> logger) {
         _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
-    public override Task OnConnectionUpAsync(Circuit circuit, CancellationToken cancellationToken)
-    {
+    public override Task OnConnectionUpAsync(Circuit circuit, CancellationToken cancellationToken) {
         var user = _httpContextAccessor.HttpContext?.User;
 
-        if (user?.Identity?.IsAuthenticated == true)
-        {
+        if (user?.Identity?.IsAuthenticated == true) {
             var userName = user.Identity.Name;
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
-            if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(userId))
-            {
-                var userInfo = new OnlineUserInfo
-                {
+            if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(userId)) {
+                var userInfo = new OnlineUserInfo {
                     CircuitId = circuit.Id,
                     UserId = userId,
                     Roles = roles
                 };
 
                 OnlineUsers[userName] = userInfo;
-                Console.WriteLine($"User {userName} (ID: {userId}) connected with Circuit {circuit.Id}");
+                _logger.LogInformation("User {userName} (ID: {userId}) connected with Circuit {circuit.Id}", userName, userId, circuit.Id);
             }
         }
 
@@ -50,8 +47,7 @@ public class TrackingCircuitHandler : CircuitHandler {
     }
 
 
-    public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)
-    {
+    public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken) {
         var user = _httpContextAccessor.HttpContext?.User;
 
         if (user?.Identity?.IsAuthenticated == true) {
@@ -60,7 +56,7 @@ public class TrackingCircuitHandler : CircuitHandler {
             if (!string.IsNullOrEmpty(userName))
             {
                 OnlineUsers.TryRemove(userName, out _);
-                Console.WriteLine($"User {userName} disconnected from Circuit {circuit.Id}");
+                _logger.LogInformation("User {userName} disconnected from Circuit {circuit.Id}", userName, circuit.Id);
             }
         }
 

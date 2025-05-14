@@ -9,7 +9,9 @@ using MudBlazor.Services;
 using PortfolioWebApp.Components;
 using PortfolioWebApp.Components.Pages.Home;
 using PortfolioWebApp.Hubs;
+using PortfolioWebApp.Hubs.Connection;
 using PortfolioWebApp.Models;
+using Serilog;
 using PortfolioWebApp.Services;
 using PortfolioWebApp.Services.Chat;
 
@@ -65,8 +67,19 @@ builder.Services.AddScoped<GlobalChatService>();
 builder.Services.AddScoped<FriendRequestClientService>();
 builder.Services.AddScoped<DirectChatService>();
 
+builder.Services.AddSingleton<INotificationConnectionStorage, UserConnectionStorage>(); // NotificationHub uses INotificationConnectionStorage
+builder.Services.AddSingleton<IDirectChatConnectionStorage, UserConnectionStorage>();   // DirectChatHub uses IDirectChatConnectionStorage
+
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
+});
+
+
 var efLoggingEnabled = builder.Configuration.GetValue<bool>("EFLogging:EnableDbCommandLogging");
 if (!efLoggingEnabled) {
     builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
@@ -128,6 +141,6 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapHub<GlobalChatHub>("/globalchathub");
-app.MapHub<FriendRequestHub>("/friendrequesthub");
+app.MapHub<NotificationHub>("/friendrequesthub");
 
 app.Run();

@@ -9,6 +9,8 @@
 @inject GlobalChatService GlobalChatService
 @inject AuthenticationStateProvider AuthStateProvider
 
+@implements IAsyncDisposable;
+
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
     <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Welcome to MyApp</MudText>
 
@@ -151,5 +153,8 @@
         return string.IsNullOrEmpty(datePart) ? timePart : $"{datePart} {timePart}";
     }
 
+    public async ValueTask DisposeAsync() {
+        await GlobalChatService.Disconnect();
+    }
 
 }

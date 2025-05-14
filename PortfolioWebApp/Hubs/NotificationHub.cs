@@ -1,16 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using PortfolioWebApp.Hubs.Connection;
 using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Hubs;
 
 [AllowAnonymous]
-public class FriendRequestHub : Hub {
+public class NotificationHub : Hub {
     
-    private readonly ILogger<GlobalChatHub> _logger;
+    private readonly ILogger<NotificationHub> _logger;
+    private readonly INotificationConnectionStorage _storage;
 
-    public FriendRequestHub(ILogger<GlobalChatHub> logger) {
+    public NotificationHub(ILogger<NotificationHub> logger, INotificationConnectionStorage storage) {
         _logger = logger;
+        _storage = storage;
     }
     
     public override Task OnDisconnectedAsync(Exception? exception) {
@@ -28,6 +31,7 @@ public class FriendRequestHub : Hub {
 
     public async Task SendFriendRequest(FriendShipRequestDto request) {
         var sender = Context.User?.Identity?.Name;
+        
         if (string.IsNullOrEmpty(sender)) {
             _logger.LogError("[FriendRequestHub]: Failed to retrieve user name from context (ConnectionId: {ConnectionId})", Context.ConnectionId);
             throw new Exception("User not authenticated.");
@@ -36,5 +40,6 @@ public class FriendRequestHub : Hub {
         // use FriendShipRequestService to save the firendship request.
 
         await Clients.User(request.to).SendAsync("ReceiveFriendRequest", request);
-    }    
+    }
+    
 }
