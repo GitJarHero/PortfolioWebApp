@@ -120,9 +120,8 @@
             User = AuthStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name,
         };
         
-        await GlobalChatService.SendMessage(messageEntity);
+        GlobalChatService.SendMessage(messageEntity);
         _newMessage = string.Empty;
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task UpdateChatBox() {

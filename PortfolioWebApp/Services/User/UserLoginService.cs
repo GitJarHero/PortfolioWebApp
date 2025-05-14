@@ -1,12 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
-using PortfolioWebApp.Services;
 
 namespace PortfolioWebApp.Services
 {
@@ -64,7 +60,7 @@ namespace PortfolioWebApp.Services
             };
             
             foreach (var role in user.Roles) {
-                claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+                claims.Add(new Claim(ClaimTypes.Role, role.Name));
             }
 
             var properties = new AuthenticationProperties {

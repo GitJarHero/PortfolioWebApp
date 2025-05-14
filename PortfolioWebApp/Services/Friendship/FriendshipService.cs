@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
+using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services {
     
@@ -12,14 +13,16 @@ namespace PortfolioWebApp.Services {
             _dbContext = dbContext;
         }
         
-        public List<User> GetFriendsOfUser(int userId) {
+        public List<UserDto> GetFriendsOfUser(string username) {
             var friendships = _dbContext.Friendships
                 .Include(f => f.User1)
                 .Include(f => f.User2)
-                .Where(f => f.User1.Id == userId || f.User2.Id == userId)
+                .Where(f => f.User1.UserName.ToLower() == username.ToLower() 
+                            || f.User2.UserName.ToLower() == username.ToLower())
                 .ToList();
 
-            return friendships.Select(f => f.User1.Id == userId ? f.User2 : f.User1).ToList();
+            return friendships.Select(f => f.User1.UserName.Equals(username, StringComparison.CurrentCultureIgnoreCase) 
+                ? new UserDto(f.User2.UserName, f.User2.Id) : new UserDto(f.User1.UserName, f.User1.Id)).ToList();
         }
         
         public void Save(Friendship friendship)
