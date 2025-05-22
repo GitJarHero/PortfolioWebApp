@@ -1,0 +1,20 @@
+@using PortfolioWebApp.Models.Entities
+@using PortfolioWebApp.Services
+@inject FriendRequestClientService FriendRequestClientService
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Do you want to add '@UserName' as a friend?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close(DialogResult.Ok(true))" Color="Color.Success">Yes</MudButton>
+        <MudButton OnClick="() => MudDialog.Close(DialogResult.Cancel())" Color="Color.Error">No</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string UserName { get; set; }
+    
+}

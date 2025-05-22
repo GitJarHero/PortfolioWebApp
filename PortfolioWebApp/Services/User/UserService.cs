@@ -12,9 +12,14 @@ public class UserService {
         _dbContext = dbContext;
     }
 
-    public List<User> FindUsersByName(string name) {
+    public List<User> FindUsersByNameQuery(string name) {
         return _dbContext.Users
             .Where(u => u.UserName.ToLower().Contains(name.ToLower())).ToList();
+    }
+
+    public User FindUserByName(string name) {
+        return _dbContext.Users.FirstOrDefault(u => u.UserName.ToLower() == name.ToLower())?? 
+               throw new Exception("User not found: " + name);;
     }
     
 }

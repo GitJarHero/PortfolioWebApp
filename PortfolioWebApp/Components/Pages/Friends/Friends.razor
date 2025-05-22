@@ -1,10 +1,15 @@
 @page "/Friends"
-@using PortfolioWebApp.Models.Entities
+
 @using PortfolioWebApp.Services
 @using PortfolioWebApp.Shared
 
 @inject FriendshipService FriendshipService
+@inject UserService UserService
+@inject IDialogService DialogService
+@inject FriendRequestClientService FriendRequestClientService
+@inject FriendRequestService FriendRequestService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Friends> Logger
 
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
     <MudGrid Spacing="4" >
@@ -24,16 +29,22 @@
                             <!-- Incoming Section -->
                             <MudItem xs="12" md="6">
                                 <MudText Typo="Typo.subtitle2" Class="mb-2" Color="Color.Info">Incoming</MudText>
-                                @foreach (var user in _incomingRequests) {
+                                @foreach (var request in _incomingRequests) {
                                     <MudPaper Class="pa-2 mb-2" Style="background-color: transparent;">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                                 <MudAvatar Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
-                                                <MudText Typo="Typo.body1">@user</MudText>
+                                                <MudText Typo="Typo.body1">@request.from</MudText>
                                             </MudStack>
                                             <MudStack Row="true" Spacing="1">
-                                                <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"/>
-                                                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small"/>
+                                                <MudTooltip Text="Accept" Arrow="true" Placement="Placement.Top">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
+                                                                   OnClick="@(()=>AnswerIncomingRequest(request, true))"/>
+                                                </MudTooltip>
+                                                <MudTooltip Text="Reject" Arrow="true" Placement="Placement.Top">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Error" Size="Size.Small" 
+                                                                   OnClick="@(()=>AnswerIncomingRequest(request, false))"/>
+                                                </MudTooltip>
                                             </MudStack>
                                         </MudStack>
                                     </MudPaper>
@@ -46,14 +57,16 @@
                             <!-- Outgoing Section -->
                             <MudItem xs="12" md="6">
                                 <MudText Typo="Typo.subtitle2" Class="mb-2" Color="Color.Info">Outgoing</MudText>
-                                @foreach (var user in _outgoingRequests) {
+                                @foreach (var request in _outgoingRequests) {
                                     <MudPaper Class="pa-2 mb-2" Style="background-color: transparent;">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                                 <MudAvatar Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Small"/>
-                                                <MudText Typo="Typo.body1">@user</MudText>
+                                                <MudText Typo="Typo.body1">@request.to</MudText>
                                             </MudStack>
-                                            <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Warning" Size="Size.Small"/>
+                                            <MudTooltip Text="Cancel" Arrow="true" Placement="Placement.Top">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Warning" Size="Size.Small"/>
+                                            </MudTooltip>
                                         </MudStack>
                                     </MudPaper>
                                 }
@@ -73,28 +86,49 @@
                         </MudItem>
                          
 
-                        <MudTextField @bind-Value="_searchTerm"
+                        <MudTextField T="string"
                                       Immediate="true"
                                       Label="Search Users"
                                       Variant="Variant.Outlined"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Search"
-                                      Class="mt-3 mb-3" />
+                                      Class="mt-3 mb-3"
+                                      TextChanged="SearchUsers"
+                                      Clearable="true"/>
 
-                        @if (!string.IsNullOrWhiteSpace(_searchTerm))
-                        {
+                        @if (_userSearchResult.Count > 0) {
                             <MudList T="string" Dense="true">
-                                @foreach (var user in _dummyUsers.Where(u => u.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)))
-                                {
+                                @foreach (var user in _userSearchResult) {
                                     <MudListItem Style="cursor: pointer;" Class="hover:bg-grey-darken-3">
-                                        <MudAvatar Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-2" />
-                                        @user
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudStack Row="true">
+                                                <MudAvatar Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
+                                                <MudText Typo="Typo.body1">@user</MudText>
+                                            </MudStack>
+
+                                            @if (FriendExists(user)) {
+                                                <MudChip Variant="Variant.Outlined" T="string" Label="true" Color="Color.Primary">
+                                                    Already Friends
+                                                </MudChip>   
+                                            }
+                                            else if (FriendRequestExists(user)) {
+                                                <MudChip Variant="Variant.Outlined" T="string" Label="true" Color="Color.Warning">
+                                                    Pending Friend Request
+                                                </MudChip>   
+                                            }
+                                            else {
+                                                <MudButton Variant="Variant.Outlined"
+                                                           Color="Color.Tertiary"
+                                                           EndIcon="@Icons.Material.Filled.Send"
+                                                           OnClick="@(() => ShowAddFriendDialog(user))">
+                                                    Add Friend
+                                                </MudButton>
+                                            }
+                                        </MudStack>
                                     </MudListItem>
                                 }
                             </MudList>
-                        }
-                        else
-                        {
+                        }else {
                             <MudText Typo="Typo.caption" Color="Color.Primary">Start typing to search for users...</MudText>
                         }
                     </MudPaper>
@@ -153,37 +187,133 @@
 </MudContainer>
 
 @code {
-    // -------- Friends List -----------
     private bool _initialized;
-    private string _query = string.Empty;
-    private List<UserDto> friendsList = new();
-
+    string myname;
+    
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender && !_initialized) {
+            // Event-Handler-Registrierung
+            FriendRequestClientService.ReceiveFriendRequestEventCallback -= ReceiveFriendRequestEventCallbackHandler;
+            FriendRequestClientService.ReceiveFriendRequestEventCallback += ReceiveFriendRequestEventCallbackHandler;
+
+            FriendRequestClientService.SendFriendRequestAckEventCallback -= SendFriendRequestAckEventCallbackHandler;
+            FriendRequestClientService.SendFriendRequestAckEventCallback += SendFriendRequestAckEventCallbackHandler;
+            
+            FriendRequestClientService.ReceiveFriendRequestAnswerEventCallback -= ReceiveFriendRequestAnswerEventCallbackHandler;
+            FriendRequestClientService.ReceiveFriendRequestAnswerEventCallback += ReceiveFriendRequestAnswerEventCallbackHandler;
+            
+            FriendRequestClientService.SendFriendRequestAnswerAckEventCallback -= SendFriendRequestAnswerAckEventCallbackHandler;
+            FriendRequestClientService.SendFriendRequestAnswerAckEventCallback += SendFriendRequestAnswerAckEventCallbackHandler;
+            
+            await FriendRequestClientService.StartAsync();
+            
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            myname = authState.User.Identity.Name;
+            
+            await UpdateFriendsList();      // fetch from db
+            await UpdateFriendRequests();   // fetch from db
+            
             _initialized = true;
-            List<UserDto> myFriends = FriendshipService.GetFriends();
-            friendsList.AddRange(myFriends);
-            await InvokeAsync(StateHasChanged);
+        }
+    }
+    
+    private void ReceiveFriendRequestEventCallbackHandler(FriendShipRequestDto request) {
+        Task.Run(async () => await UpdateFriendRequests());
+    }
+
+    private void SendFriendRequestAckEventCallbackHandler(FriendShipRequestDto request) {
+        Task.Run(async () => await UpdateFriendRequests());
+    }
+
+    private void ReceiveFriendRequestAnswerEventCallbackHandler(FriendShipRequestAnswerDto answer) {
+        Task.Run(async () => {
+            await UpdateFriendRequests();
+            if (answer.accepted) {
+                await UpdateFriendsList();
+            }
+        });
+    }
+
+    private void SendFriendRequestAnswerAckEventCallbackHandler(FriendShipRequestAnswerDto answer) {
+        Task.Run(async () => {
+            await UpdateFriendRequests();
+            if (answer.accepted) {  
+                await UpdateFriendsList();
+            }
+        });
+    }
+
+    
+    // -------- Friends List -----------
+    private string _query = string.Empty;
+    private List<UserDto> friendsList = new();
+    
+    private async Task UpdateFriendsList() {
+        List<UserDto> myFriends = FriendshipService.GetFriends();
+        friendsList.Clear();
+        friendsList.AddRange(myFriends);
+        await InvokeAsync(StateHasChanged);
+    }
+   
+
+    // -------- Friend Requests -----------
+    private List<FriendShipRequestDto> _incomingRequests = new();
+    private List<FriendShipRequestDto> _outgoingRequests = new();
+
+    private async Task UpdateFriendRequests() {
+       
+        var allRequests = FriendRequestService.GetAllFriendRequests(myname);
+        
+        _incomingRequests.Clear();
+        _incomingRequests.AddRange(FriendRequestService.FilterIncomingRequests(allRequests, myname));
+        
+        _outgoingRequests.Clear();
+        _outgoingRequests.AddRange(FriendRequestService.FilterOutgoingRequests(allRequests, myname));
+        
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private bool FriendRequestExists(string user) {
+        return _incomingRequests.Any(request => request.from == user) ||
+               _outgoingRequests.Any(request => request.to == user);
+    }
+
+    private bool FriendExists(string user) {
+        return friendsList.FirstOrDefault(fr => fr.username == user) != null;
+    }
+
+    private async Task AnswerIncomingRequest(FriendShipRequestDto request, bool accept) {
+        await FriendRequestClientService.AnswerFriendRequest(request, accept);
+        _incomingRequests.Remove(request);
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    // -------- Search Users -----------
+
+    private List<string> _userSearchResult = new();
+
+    private void SearchUsers(string text) {
+        if (text.Trim() == string.Empty) {
+            _userSearchResult.Clear();
+            return;
+        }
+        _userSearchResult = UserService.FindUsersByNameQuery(text)
+            .Select(u => u.UserName).ToList();
+    }
+    
+    // -------- Add Friend --------------
+    private async Task ShowAddFriendDialog(string userName) {
+        var parameters = new DialogParameters { ["UserName"] = userName };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = DialogService.Show<AddFriendDialog>("Confirm Friend Request", parameters, options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled) {
+            await FriendRequestClientService.SendRequestTo(userName);
+            
         }
     }
 
-    // -------- Friend Requests -----------
-
-    private List<string> _incomingRequests = new();
-
-    private List<string> _outgoingRequests = new();
-    
-    
-    // -------- Search Users -----------
-    
-    private string _searchTerm = string.Empty;
-
-    private List<string> _dummyUsers = new()
-    {
-        "Alice Johnson",
-        "Bob Smith",
-        "Charlie Daniels",
-        "David Lee",
-        "Eva Green"
-    };
 }

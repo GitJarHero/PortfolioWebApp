@@ -29,7 +29,7 @@ public class GlobalChatService {
         _navigation = navigation;
         
         if (_httpClient.BaseAddress == null) {
-            _httpClient.BaseAddress = new Uri("http://localhost:5120");
+            _httpClient.BaseAddress = new Uri(_config["HttpClient:BaseAddress"]);
         }
         
         var context = _httpContextAccessor.HttpContext;

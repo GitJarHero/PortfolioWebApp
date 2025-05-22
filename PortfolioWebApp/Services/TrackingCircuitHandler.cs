@@ -12,8 +12,6 @@ public class TrackingCircuitHandler : CircuitHandler {
         public List<string> Roles { get; set; } = new();
     }
     
-    private static readonly ConcurrentDictionary<string, OnlineUserInfo> OnlineUsers = new();
-    
     private readonly IHttpContextAccessor _httpContextAccessor;
     
     private readonly ILogger<TrackingCircuitHandler> _logger;
@@ -37,8 +35,7 @@ public class TrackingCircuitHandler : CircuitHandler {
                     UserId = userId,
                     Roles = roles
                 };
-
-                OnlineUsers[userName] = userInfo;
+                
                 _logger.LogInformation("User {userName} (ID: {userId}) connected with Circuit {circuit.Id}", userName, userId, circuit.Id);
             }
         }
@@ -53,16 +50,12 @@ public class TrackingCircuitHandler : CircuitHandler {
         if (user?.Identity?.IsAuthenticated == true) {
             var userName = user.Identity.Name;
 
-            if (!string.IsNullOrEmpty(userName))
-            {
-                OnlineUsers.TryRemove(userName, out _);
+            if (!string.IsNullOrEmpty(userName)) {
                 _logger.LogInformation("User {userName} disconnected from Circuit {circuit.Id}", userName, circuit.Id);
             }
         }
 
         return base.OnConnectionDownAsync(circuit, cancellationToken);
     }
-
-
-    public static bool IsUserOnline(string userId) => OnlineUsers.ContainsKey(userId);
+    
 }

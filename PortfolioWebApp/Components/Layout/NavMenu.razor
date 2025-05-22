@@ -11,29 +11,29 @@
         <AuthorizeView>
             <Authorized Context="authContext">
                 <!-- visible for authenticated users -->
-                <MudNavLink Href="/Home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+                <MudNavLink ForceLoad="false" Href="/Home" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
                     Home
                 </MudNavLink>
-                <MudNavLink Href="/Chats" Icon="@Icons.Material.Filled.Chat">
+                <MudNavLink ForceLoad="false" Href="/Chats" Icon="@Icons.Material.Filled.Chat">
                     Chats
                 </MudNavLink>
-                <MudNavLink Href="/Friends" Icon="@Icons.Material.Filled.People">
+                <MudNavLink ForceLoad="false" Href="/Friends" Icon="@Icons.Material.Filled.People">
                     Friends
                 </MudNavLink>
 
                 <MudSpacer/>
                 
-                <MudNavLink Href="/Account/Profile" Icon="@Icons.Material.Filled.AccountCircle">
+                <MudNavLink ForceLoad="false" Href="/Account/Profile" Icon="@Icons.Material.Filled.AccountCircle">
                     Profile
                 </MudNavLink>
-                <MudNavLink IconColor="Color.Error" Href="/Account/Logout" Icon="@Icons.Material.Filled.ExitToApp">
+                <MudNavLink ForceLoad="false" IconColor="Color.Error" Href="/Account/Logout" Icon="@Icons.Material.Filled.ExitToApp">
                     Logout
                 </MudNavLink>
 
                 <!-- visible to admins -->
                 <AuthorizeView Roles="admin">
                     <Authorized Context="adminContext">
-                        <MudNavLink Href="/Administration" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                        <MudNavLink ForceLoad="false" Href="/Administration" Icon="@Icons.Material.Filled.AdminPanelSettings">
                             Administration
                         </MudNavLink>
                     </Authorized>

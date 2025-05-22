@@ -10,6 +10,7 @@ public class AppDbContext : DbContext {
     public DbSet<User> Users { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
     public DbSet<Friendship> Friendships { get; set; }
+    public DbSet<FriendRequest> FriendRequests { get; set; }
     public DbSet<GlobalMessage> GlobalMessages { get; set; }
     public DbSet<DirectMessage> DirectMessages { get; set; }
 
@@ -68,6 +69,35 @@ public class AppDbContext : DbContext {
 
             entity.Property(f => f.Created)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+        
+        modelBuilder.Entity<FriendRequest>(entity =>
+        {
+            entity.ToTable("friendrequest"); // Name der Tabelle setzen
+
+            // Primärschlüssel definieren
+            entity.HasKey(e => e.Id);
+
+            // Beziehung zwischen dem "FromUser" und der "User"-Entität
+            entity.HasOne(e => e.From)
+                .WithMany()
+                .HasForeignKey("from_user")
+                .HasConstraintName("fk_friendrequest_from_user")
+                .OnDelete(DeleteBehavior.Cascade); // Löschverhalten
+
+            // Beziehung zwischen dem "ToUser" und der "User"-Entität
+            entity.HasOne(e => e.To)
+                .WithMany()
+                .HasForeignKey("to_user")
+                .HasConstraintName("fk_friendrequest_to_user")
+                .OnDelete(DeleteBehavior.Cascade); // Löschverhalten
+
+            // Standardwert für `Created` setzen
+            entity.Property(e => e.Created)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            // Zusätzliche Konventionen können hier hinzugefügt werden, falls nötig
         });
             
         modelBuilder.Entity<GlobalMessage>(entity => {

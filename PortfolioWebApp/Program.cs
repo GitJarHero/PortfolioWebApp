@@ -60,12 +60,14 @@ builder.Services.AddScoped<IPasswordHashingService, PasswordHashingService>();
 builder.Services.AddScoped<IUserRegistrationService, UserRegistrationService>();
 builder.Services.AddScoped<IUserLoginService, UserLoginService>();
 builder.Services.AddScoped<UserLoginService>();
-builder.Services.AddScoped<FriendshipService>();
 builder.Services.AddScoped<UserService>();
-builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
-builder.Services.AddScoped<GlobalChatService>();
+builder.Services.AddScoped<FriendshipService>();
+builder.Services.AddScoped<FriendRequestService>();
 builder.Services.AddScoped<FriendRequestClientService>();
+builder.Services.AddScoped<GlobalChatService>();
 builder.Services.AddScoped<DirectChatService>();
+
+builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
 
 builder.Services.AddSingleton<INotificationConnectionStorage, UserConnectionStorage>(); // NotificationHub uses INotificationConnectionStorage
 builder.Services.AddSingleton<IDirectChatConnectionStorage, UserConnectionStorage>();   // DirectChatHub uses IDirectChatConnectionStorage
@@ -141,6 +143,6 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapHub<GlobalChatHub>("/globalchathub");
-app.MapHub<NotificationHub>("/friendrequesthub");
+app.MapHub<NotificationHub>("/notificationhub");
 
 app.Run();

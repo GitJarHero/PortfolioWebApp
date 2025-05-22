@@ -176,6 +176,25 @@ CREATE TABLE IF NOT EXISTS friendrequest (
     CONSTRAINT unique_friend_request UNIQUE (from_user, to_user)
 );
 
+CREATE OR REPLACE FUNCTION prevent_reverse_friendship()
+    RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM friendrequest
+        WHERE from_user = NEW.to_user AND to_user = NEW.from_user
+    ) THEN
+        RAISE EXCEPTION 'Reverse friendship request already exists';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER prevent_reverse_friendship_trigger
+    BEFORE INSERT ON friendrequest
+    FOR EACH ROW
+EXECUTE FUNCTION prevent_reverse_friendship();
 
 
 

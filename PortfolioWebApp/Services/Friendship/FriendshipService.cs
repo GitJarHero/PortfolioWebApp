@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using PortfolioWebApp.Models;
+using PortfolioWebApp.Models.Entities;
 using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services {
@@ -26,6 +27,16 @@ namespace PortfolioWebApp.Services {
 
             return friendships.Select(f => f.User1.UserName.Equals(username, StringComparison.CurrentCultureIgnoreCase) 
                 ? new UserDto(f.User2.UserName, f.User2.Id) : new UserDto(f.User1.UserName, f.User1.Id)).ToList();
+        }
+        
+        public void Save(Friendship friendship) {
+            _dbContext.Add(friendship);
+            _dbContext.SaveChanges();
+        }
+        
+        public void Delete(Friendship friendship) {
+            _dbContext.Friendships.Remove(friendship);
+            _dbContext.SaveChanges();
         }
         
     }
