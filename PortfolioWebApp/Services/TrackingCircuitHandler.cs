@@ -6,12 +6,6 @@ namespace PortfolioWebApp.Services;
 
 public class TrackingCircuitHandler : CircuitHandler {
     
-    public class OnlineUserInfo {
-        public string CircuitId { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
-        public List<string> Roles { get; set; } = new();
-    }
-    
     private readonly IHttpContextAccessor _httpContextAccessor;
     
     private readonly ILogger<TrackingCircuitHandler> _logger;
@@ -27,14 +21,8 @@ public class TrackingCircuitHandler : CircuitHandler {
         if (user?.Identity?.IsAuthenticated == true) {
             var userName = user.Identity.Name;
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
 
             if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(userId)) {
-                var userInfo = new OnlineUserInfo {
-                    CircuitId = circuit.Id,
-                    UserId = userId,
-                    Roles = roles
-                };
                 
                 _logger.LogInformation("User {userName} (ID: {userId}) connected with Circuit {circuit.Id}", userName, userId, circuit.Id);
             }

@@ -1,9 +1,8 @@
 using System.Security.Cryptography;
 
-namespace PortfolioWebApp.Services
-{
-    public interface IPasswordHashingService
-    {
+namespace PortfolioWebApp.Services {
+    
+    public interface IPasswordHashingService {
         string Hash(string plainText);
         bool Verify(string plainText, string hash);
     }
@@ -25,8 +24,8 @@ namespace PortfolioWebApp.Services
             return HashWithSalt(plainText, salt);
         }
 
-        public bool Verify(string plainText, string hashedText)
-        {
+        public bool Verify(string plainText, string hashedText) {
+            
             // Extract salt from stored hash
             byte[] hashBytes = Convert.FromBase64String(hashedText);
             byte[] salt = new byte[SaltSize];
@@ -38,8 +37,7 @@ namespace PortfolioWebApp.Services
             return hashedText == newHash;
         }
 
-        private string HashWithSalt(string plainText, byte[] salt)
-        {
+        private string HashWithSalt(string plainText, byte[] salt) {
             // Create hash with given salt
             byte[] hash;
             using (var pbkdf2 = new Rfc2898DeriveBytes(
