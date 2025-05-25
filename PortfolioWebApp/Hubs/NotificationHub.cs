@@ -40,6 +40,7 @@ public class NotificationHub : Hub {
         return base.OnConnectedAsync();
     }
 
+    // missing security check: request.from = session.user ?
     public async Task SendFriendRequest(FriendShipRequestDto request) {
         var senderUser = _userService.FindUserByName(request.from);
         var sender = senderUser.UserName;
@@ -69,6 +70,7 @@ public class NotificationHub : Hub {
         await Clients.User(senderUser.Id.ToString()).SendAsync("SendFriendRequestAck", request);
     }
 
+    // missing security check: request.from = session.user & is there a request in the db for that answer ?
     public async Task SendFriendRequestAnswer(FriendShipRequestAnswerDto answer) {
 
         var from = _userService.FindUserByName(answer.request.from);
@@ -92,6 +94,14 @@ public class NotificationHub : Hub {
         _logger.LogInformation("Sending 'SendFriendRequestAnswerAck' Event to user: {from}", from.UserName);
         await Clients.User(to.Id.ToString()).SendAsync("SendFriendRequestAnswerAck", answer);
     }
-    
-    
+
+    // missing security check: request.from = session.user ?
+    public async Task SendFriendRequestCancellation(FriendShipRequestDto request) {
+        var from = _userService.FindUserByName(request.from);
+        var to = _userService.FindUserByName(request.to);
+        _friendRequestService.Delete(request);
+        
+        _logger.LogInformation("Sending 'ReceiveFriendRequestCancellation' Event to users: {from}, {to}", request.from, request.to);;
+        await Clients.Users(from.Id.ToString(), to.Id.ToString()).SendAsync("ReceiveFriendRequestCancellation", request);
+    }
 }

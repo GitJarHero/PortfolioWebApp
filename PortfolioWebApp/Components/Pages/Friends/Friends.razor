@@ -1,5 +1,6 @@
 @page "/Friends"
 
+@using PortfolioWebApp.Models.Entities
 @using PortfolioWebApp.Services
 @using PortfolioWebApp.Shared
 
@@ -65,7 +66,8 @@
                                                 <MudText Typo="Typo.body1">@request.to</MudText>
                                             </MudStack>
                                             <MudTooltip Text="Cancel" Arrow="true" Placement="Placement.Top">
-                                                <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Warning" Size="Size.Small"/>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Warning" Size="Size.Small"
+                                                               OnClick="@(()=>CancelOutgoingRequest(request))"/>
                                             </MudTooltip>
                                         </MudStack>
                                     </MudPaper>
@@ -193,17 +195,20 @@
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender && !_initialized) {
             // Event-Handler-Registrierung
-            FriendRequestClientService.ReceiveFriendRequestEventCallback -= ReceiveFriendRequestEventCallbackHandler;
-            FriendRequestClientService.ReceiveFriendRequestEventCallback += ReceiveFriendRequestEventCallbackHandler;
+            FriendRequestClientService.ReceiveFriendRequestEventCallback -= ReceiveFriendRequestEventHandler;
+            FriendRequestClientService.ReceiveFriendRequestEventCallback += ReceiveFriendRequestEventHandler;
 
-            FriendRequestClientService.SendFriendRequestAckEventCallback -= SendFriendRequestAckEventCallbackHandler;
-            FriendRequestClientService.SendFriendRequestAckEventCallback += SendFriendRequestAckEventCallbackHandler;
+            FriendRequestClientService.SendFriendRequestAckEventCallback -= SendFriendRequestAckEventHandler;
+            FriendRequestClientService.SendFriendRequestAckEventCallback += SendFriendRequestAckEventHandler;
             
-            FriendRequestClientService.ReceiveFriendRequestAnswerEventCallback -= ReceiveFriendRequestAnswerEventCallbackHandler;
-            FriendRequestClientService.ReceiveFriendRequestAnswerEventCallback += ReceiveFriendRequestAnswerEventCallbackHandler;
+            FriendRequestClientService.ReceiveFriendRequestAnswerEventCallback -= ReceiveFriendRequestAnswerEventHandler;
+            FriendRequestClientService.ReceiveFriendRequestAnswerEventCallback += ReceiveFriendRequestAnswerEventHandler;
             
-            FriendRequestClientService.SendFriendRequestAnswerAckEventCallback -= SendFriendRequestAnswerAckEventCallbackHandler;
-            FriendRequestClientService.SendFriendRequestAnswerAckEventCallback += SendFriendRequestAnswerAckEventCallbackHandler;
+            FriendRequestClientService.SendFriendRequestAnswerAckEventCallback -= SendFriendRequestAnswerAckEventHandler;
+            FriendRequestClientService.SendFriendRequestAnswerAckEventCallback += SendFriendRequestAnswerAckEventHandler;
+
+            FriendRequestClientService.ReceiveFriendRequestCancellationEventCallback -= ReceiveFriendRequestCancellationEventHandler;
+            FriendRequestClientService.ReceiveFriendRequestCancellationEventCallback += ReceiveFriendRequestCancellationEventHandler;
             
             await FriendRequestClientService.StartAsync();
             
@@ -214,18 +219,19 @@
             await UpdateFriendRequests();   // fetch from db
             
             _initialized = true;
+            await InvokeAsync(StateHasChanged);
         }
     }
     
-    private void ReceiveFriendRequestEventCallbackHandler(FriendShipRequestDto request) {
+    private void ReceiveFriendRequestEventHandler(FriendShipRequestDto request) {
         Task.Run(async () => await UpdateFriendRequests());
     }
 
-    private void SendFriendRequestAckEventCallbackHandler(FriendShipRequestDto request) {
+    private void SendFriendRequestAckEventHandler(FriendShipRequestDto request) {
         Task.Run(async () => await UpdateFriendRequests());
     }
 
-    private void ReceiveFriendRequestAnswerEventCallbackHandler(FriendShipRequestAnswerDto answer) {
+    private void ReceiveFriendRequestAnswerEventHandler(FriendShipRequestAnswerDto answer) {
         Task.Run(async () => {
             await UpdateFriendRequests();
             if (answer.accepted) {
@@ -234,12 +240,27 @@
         });
     }
 
-    private void SendFriendRequestAnswerAckEventCallbackHandler(FriendShipRequestAnswerDto answer) {
+    private void SendFriendRequestAnswerAckEventHandler(FriendShipRequestAnswerDto answer) {
         Task.Run(async () => {
             await UpdateFriendRequests();
             if (answer.accepted) {  
                 await UpdateFriendsList();
             }
+        });
+    }
+
+    private void ReceiveFriendRequestCancellationEventHandler(FriendShipRequestDto cancelledRequest) {
+        Task.Run(async () => {
+            if (myname.Equals(cancelledRequest.from)) {
+                _outgoingRequests.Remove(cancelledRequest);
+            }
+            else if (myname.Equals(cancelledRequest.to)) {
+                _incomingRequests.Remove(cancelledRequest);
+            }
+            else {
+                Logger.LogWarning("Received unexpected FriendRequestCancellation: {req}", cancelledRequest);
+            }
+            await InvokeAsync(StateHasChanged);
         });
     }
 
@@ -286,6 +307,10 @@
         await FriendRequestClientService.AnswerFriendRequest(request, accept);
         _incomingRequests.Remove(request);
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CancelOutgoingRequest(FriendShipRequestDto request) {
+        await FriendRequestClientService.CancelFriendRequest(request);
     }
     
     // -------- Search Users -----------

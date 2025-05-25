@@ -28,6 +28,9 @@ public class FriendRequestClientService {
     
     // invoked, when the server acknowledges the answer to a friend request.
     public event Action<FriendShipRequestAnswerDto>? SendFriendRequestAnswerAckEventCallback;
+    
+    // invoked, when the server cancelled that friend request.
+    public event Action<FriendShipRequestDto>? ReceiveFriendRequestCancellationEventCallback;
 
     public FriendRequestClientService(NavigationManager navigation, 
                                         IJSRuntime jsRuntime, 
@@ -74,6 +77,11 @@ public class FriendRequestClientService {
             SendFriendRequestAnswerAckEventCallback?.Invoke(answer);
         });
 
+        _hubConnection.On("ReceiveFriendRequestCancellation", (FriendShipRequestDto request) => {
+            _logger.LogInformation("Got a 'ReceiveFriendRequestCancellation' Event. Cancellation is: {request}", request.ToString());
+            ReceiveFriendRequestCancellationEventCallback?.Invoke(request);
+        });
+
         await _hubConnection.StartAsync();
         _logger.LogDebug("Connected to Hub");
     }
@@ -98,6 +106,11 @@ public class FriendRequestClientService {
         
     }
     
+    public async Task CancelFriendRequest(FriendShipRequestDto request) {
+        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
+            await _hubConnection.SendAsync("SendFriendRequestCancellation", request);
+        }
+    }
     
     
 }

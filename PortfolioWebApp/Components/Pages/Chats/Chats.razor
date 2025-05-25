@@ -1,7 +1,147 @@
 @page "/Chats"
 
-<h3>Chats</h3>
+<div style="display: flex; height: calc(100vh - 48px); overflow: hidden;">
+    <!-- Left Area (Friends), fixed size -->
+    <MudContainer Style="width: 444px; height: calc(100vh - 48px); padding: 0; display: flex; flex-direction: column;">
+        <MudCard Style="height:100%; display: flex; flex-direction: column;">
+            <MudCardContent Style="flex: 1; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
+                
+                <MudText Typo="Typo.h6" Class="px-4 py-1">Your Friends</MudText>
+
+                <div class="px-4">
+                    <!-- put inside a div to prevent auto growing-->
+                    <MudTextField
+                        Class="mb-2"
+                        @bind-Value="_query"
+                        Immediate="true"
+                        Placeholder="Search..."
+                        Variant="Variant.Text"
+                        FullWidth="true"
+                        AdornmentIcon="@Icons.Material.Filled.Search"
+                        Adornment="Adornment.Start"/>
+                </div>
+                
+                <MudStack Row="true" Spacing="2" Class="px-4">
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(selectedFilter == ChatFilter.All ? Color.Primary : Color.Default)"
+                             Style="@(selectedFilter == ChatFilter.All ? "border: 1px solid var(--mud-palette-primary);" : null)"
+                             OnClick="@(() => selectedFilter = ChatFilter.All)">
+                        All
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(selectedFilter == ChatFilter.Unread ? Color.Primary : Color.Default)"
+                             OnClick="@(() => selectedFilter = ChatFilter.Unread)">
+                        Unread
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(selectedFilter == ChatFilter.Favorites ? Color.Primary : Color.Default)"
+                             OnClick="@(() => selectedFilter = ChatFilter.Favorites)">
+                        Favorites
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(selectedFilter == ChatFilter.Groups ? Color.Primary : Color.Default)"
+                             OnClick="@(() => selectedFilter = ChatFilter.Groups)">
+                        Groups
+                    </MudChip>
+                </MudStack>
+
+                
+                <MudList T="string" Style="flex: 1; overflow-y: auto;">
+                    @if (!_initialized) {
+                        <MudText>Loading Friends...</MudText>
+                    }
+                    else {
+                        @foreach (var chat in friendsList) {
+                            <MudListItem Class="py-4 px-4">
+                                <div class="d-flex align-items-center w-100" style="gap: 12px;">
+                                    <!-- Avatar -->
+                                    <MudAvatar Style="width: 48px;height: 48px;font-size: 1.25rem;">A</MudAvatar>
+
+                                    <!-- Chat Info -->
+                                    <div class="flex-grow-1 d-flex flex-column justify-center" style="min-height: 48px; min-width: 0;">
+                                        <div class="d-flex justify-content-between align-items-center" style="min-width: 0;">
+                                            <MudText Typo="Typo.subtitle1"
+                                                     Class="fw-bold text-truncate"
+                                                     Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                                                @chat.Name
+                                            </MudText>
+
+                                            <MudText Typo="Typo.caption" Class="text-muted ms-2">
+                                                @chat.LastMessageTime
+                                            </MudText>
+                                        </div>
+
+                                        <MudText Typo="Typo.body2" Class="text-truncate text-muted">
+                                            @chat.LastMessage
+                                        </MudText>
+                                    </div>
+                                </div>
+                            </MudListItem>
+
+
+                        }
+                    }
+                </MudList>
+
+                
+            </MudCardContent>
+        </MudCard>
+    </MudContainer>
+
+    <!-- Right Area (Active Chat) -->
+    <div style="flex: 1; background-color: yellow;">
+        <!-- Hauptinhalt -->
+    </div>
+</div>
 
 @code {
+    bool _initialized = true;
     
+    string _query = string.Empty;
+    
+    public enum ChatFilter {
+        All,
+        Unread,
+        Favorites,
+        Groups
+    }
+    private ChatFilter selectedFilter = ChatFilter.All;
+    
+    public class ChatPreview {
+        public string Name { get; set; }
+        public string LastMessage { get; set; }
+        public string LastMessageTime { get; set; }
+    }
+    private List<ChatPreview> friendsList = new() {
+        new ChatPreview { Name = "Someone", LastMessage = "You reacted with 👍 ...", LastMessageTime = "18:11" },
+        new ChatPreview { Name = "Another User", 
+            LastMessage = "A big text to show that also long text with many characters are displayed correctly", 
+            LastMessageTime = "12:05" },
+        new ChatPreview { Name = "Random dude", 
+            LastMessage = "Text with line break\n lmao", 
+            LastMessageTime = "12:05" },
+        new ChatPreview { Name = "A very long group name that probably get's cut off", LastMessage = "This is some random text", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
+    };
+
 }
