@@ -1,0 +1,83 @@
+﻿@using PortfolioWebApp.Shared
+@using MudBlazor
+
+<MudPaper Class="d-flex flex-column h-100" Elevation="1">
+
+    <!-- Header -->
+    <MudPaper Class="d-flex align-items-center px-4 py-2" Elevation="1">
+        <MudAvatar Size="Size.Medium" />
+        <MudText Typo="Typo.h6" Class="ml-2">@ChatData.Key.username</MudText>
+    </MudPaper>
+
+    <!-- Nachrichtenbereich -->
+    <MudPaper Class="flex-grow-1 overflow-auto px-4 py-2">
+        @if (ChatData.Value?.Any() == true)
+        {
+            var groupedMessages = GroupByConsecutiveSender(ChatData.Value.OrderBy(m => m.Created));
+
+            for (int i = 0; i < groupedMessages.Count; i++)
+            {
+                var group = groupedMessages[i];
+                var lastMessage = group.Last();
+                var isCurrentUser = lastMessage.To == ChatData.Key.username;
+                var position = isCurrentUser ? ChatBubblePosition.End : ChatBubblePosition.Start;
+
+                <MudChat ChatPosition="@position">
+                    @foreach (var message in group) {
+                        <MudChatBubble>
+                            @message.Content
+                        </MudChatBubble>
+                    }
+                    <MudChatFooter Class="mt-1">@lastMessage.Created.ToString()</MudChatFooter>
+                </MudChat>
+            }
+        }
+        else
+        {
+            <MudChatBubble Text="Noch keine Nachrichten" Side="ChatSide.Center" />
+        }
+    </MudPaper>
+
+    <!-- Eingabeleiste -->
+    <MudPaper Elevation="1" Class="d-flex justify-content-center pa-2">
+        <MudTextField @bind-Value="_newMessage"
+                      Placeholder="Nachricht schreiben..."
+                      Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.Send"
+                      OnAdornmentClick="@SendMessage"
+                      Immediate="true"
+                      Lines="1"
+                      Style="width: 50%; min-width: 300px;" />
+    </MudPaper>
+
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public KeyValuePair<UserDto, List<DirectMessageDto>> ChatData { get; set; }
+
+    private string _newMessage = string.Empty;
+
+    private void SendMessage() {
+        // Logik zum Nachrichtensenden
+        _newMessage = string.Empty;
+    }
+    
+    private List<List<DirectMessageDto>> GroupByConsecutiveSender(IEnumerable<DirectMessageDto> messages) {
+        
+        var result = new List<List<DirectMessageDto>>();
+        List<DirectMessageDto>? currentGroup = null;
+        string? lastSender = null;
+
+        foreach (var message in messages) {
+            if (lastSender != message.From) {
+                currentGroup = new List<DirectMessageDto>();
+                result.Add(currentGroup);
+                lastSender = message.From;
+            }
+            currentGroup!.Add(message);
+        }
+
+        return result;
+    }
+}

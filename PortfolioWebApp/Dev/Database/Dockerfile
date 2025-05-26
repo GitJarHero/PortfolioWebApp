@@ -7,4 +7,4 @@ ENV POSTGRES_PASSWORD=webapp123
 ENV POSTGRES_DB=webappdb
 
 # Kopiere das Initialisierungs-Skript
-COPY ./init.sql /docker-entrypoint-initdb.d/
+COPY ./init-sqls /docker-entrypoint-initdb.d/

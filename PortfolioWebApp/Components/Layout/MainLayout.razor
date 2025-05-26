@@ -52,7 +52,7 @@
 
 
 <!-- Loading Overlay -->
-<div class="loading-overlay @(!DirectChatService.ChatsLoaded() ? "" : "hidden")">
+<div class="loading-overlay @(HttpContextAccessor.HttpContext.User.Identity.IsAuthenticated && !DirectChatService.ChatsLoaded() ? "" : "hidden")">
     <MudText Typo="Typo.h6" Class="mb-4 text-center">@loadingMessage</MudText>
     <MudProgressLinear Value="@loadingProgress" Color="Color.Primary" Style="width: 50%;" />
 </div>
@@ -113,7 +113,7 @@
                     DirectChatService.OnProgressChanged += (p, message) => {
                         loadingProgress = p;
                         loadingMessage = message;
-                        StateHasChanged();
+                        InvokeAsync(StateHasChanged);
                     };
                     DirectChatService.LoadChatsAsync(user.Identity.Name);
                 }

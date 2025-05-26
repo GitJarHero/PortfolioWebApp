@@ -1,5 +1,10 @@
 @page "/Chats"
 
+@using PortfolioWebApp.Services.Chat
+@using PortfolioWebApp.Shared
+
+@inject IDirectChatService ChatService
+
 <div style="display: flex; height: calc(100vh - 48px); overflow: hidden;">
     <!-- Left Area (Friends), fixed size -->
     <MudContainer Style="width: 444px; height: calc(100vh - 48px); padding: 0; display: flex; flex-direction: column;">
@@ -25,33 +30,33 @@
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(selectedFilter == ChatFilter.All ? Color.Primary : Color.Default)"
-                             Style="@(selectedFilter == ChatFilter.All ? "border: 1px solid var(--mud-palette-primary);" : null)"
-                             OnClick="@(() => selectedFilter = ChatFilter.All)">
+                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.All ? Color.Primary : Color.Default)"
+                             Style="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.All ? "border: 1px solid var(--mud-palette-primary);" : null)"
+                             OnClick="@(() => ChangeFilter(IDirectChatService.ChatPreviewFilter.All))">
                         All
                     </MudChip>
 
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(selectedFilter == ChatFilter.Unread ? Color.Primary : Color.Default)"
-                             OnClick="@(() => selectedFilter = ChatFilter.Unread)">
+                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.Unread ? Color.Primary : Color.Default)"
+                             OnClick="@(() => ChangeFilter(IDirectChatService.ChatPreviewFilter.Unread))">
                         Unread
                     </MudChip>
 
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(selectedFilter == ChatFilter.Favorites ? Color.Primary : Color.Default)"
-                             OnClick="@(() => selectedFilter = ChatFilter.Favorites)">
+                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.Favorites ? Color.Primary : Color.Default)"
+                             OnClick="@(() => _selectedPreviewFilter = IDirectChatService.ChatPreviewFilter.Favorites)">
                         Favorites
                     </MudChip>
 
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(selectedFilter == ChatFilter.Groups ? Color.Primary : Color.Default)"
-                             OnClick="@(() => selectedFilter = ChatFilter.Groups)">
+                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.Groups ? Color.Primary : Color.Default)"
+                             OnClick="@(() => _selectedPreviewFilter = IDirectChatService.ChatPreviewFilter.Groups)">
                         Groups
                     </MudChip>
                 </MudStack>
@@ -62,8 +67,8 @@
                         <MudText>Loading Friends...</MudText>
                     }
                     else {
-                        @foreach (var chat in friendsList) {
-                            <MudListItem Class="py-4 px-4">
+                        @foreach (var chat in _chatPreviews) {
+                            <MudListItem Class="py-4 px-4" OnClick="@(() => ChangeActiveChat(chat))">
                                 <div class="d-flex align-items-center w-100" style="gap: 12px;">
                                     <!-- Avatar -->
                                     <MudAvatar Style="width: 48px;height: 48px;font-size: 1.25rem;">A</MudAvatar>
@@ -74,16 +79,16 @@
                                             <MudText Typo="Typo.subtitle1"
                                                      Class="fw-bold text-truncate"
                                                      Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
-                                                @chat.Name
+                                                @chat.ChatPartner.username
                                             </MudText>
 
                                             <MudText Typo="Typo.caption" Class="text-muted ms-2">
-                                                @chat.LastMessageTime
+                                                @chat.LatestMessage.Created
                                             </MudText>
                                         </div>
 
                                         <MudText Typo="Typo.body2" Class="text-truncate text-muted">
-                                            @chat.LastMessage
+                                            @chat.LatestMessage.Content
                                         </MudText>
                                     </div>
                                 </div>
@@ -100,48 +105,36 @@
     </MudContainer>
 
     <!-- Right Area (Active Chat) -->
-    <div style="flex: 1; background-color: yellow;">
-        <!-- Hauptinhalt -->
+    <div style="flex: 1;">
+        @if (ActiveChat is not null) {
+            <ChatWindow ChatData="@ActiveChat.Value" /> <!-- the reference value, not the value of the pair -->
+        } else {
+            <PlaceholderChatWindow/>        
+        }
     </div>
 </div>
 
 @code {
-    bool _initialized = true;
-    
-    string _query = string.Empty;
-    
-    public enum ChatFilter {
-        All,
-        Unread,
-        Favorites,
-        Groups
-    }
-    private ChatFilter selectedFilter = ChatFilter.All;
-    
-    public class ChatPreview {
-        public string Name { get; set; }
-        public string LastMessage { get; set; }
-        public string LastMessageTime { get; set; }
-    }
-    private List<ChatPreview> friendsList = new() {
-        new ChatPreview { Name = "Someone", LastMessage = "You reacted with 👍 ...", LastMessageTime = "18:11" },
-        new ChatPreview { Name = "Another User", 
-            LastMessage = "A big text to show that also long text with many characters are displayed correctly", 
-            LastMessageTime = "12:05" },
-        new ChatPreview { Name = "Random dude", 
-            LastMessage = "Text with line break\n lmao", 
-            LastMessageTime = "12:05" },
-        new ChatPreview { Name = "A very long group name that probably get's cut off", LastMessage = "This is some random text", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-        new ChatPreview { Name = "User with no chats", LastMessage = "", LastMessageTime = "yesterday" },
-    };
+    private bool _initialized = false;
+    private string _query = string.Empty;
+    private IDirectChatService.ChatPreviewFilter _selectedPreviewFilter = IDirectChatService.ChatPreviewFilter.All;
+    private List<ChatPreview> _chatPreviews = new();
+    public KeyValuePair<UserDto, List<DirectMessageDto>>? ActiveChat { get; set; }
 
+    protected override async Task OnInitializedAsync() {
+        _chatPreviews = ChatService.GetChatPreviews(_selectedPreviewFilter);
+        _initialized = true;
+    }
+
+    private void ChangeFilter(IDirectChatService.ChatPreviewFilter newPreviewFilter) {
+        _selectedPreviewFilter = newPreviewFilter;
+        _chatPreviews = ChatService.GetChatPreviews(newPreviewFilter);
+        StateHasChanged(); // re-render the Chats list
+    }
+
+    private void ChangeActiveChat(ChatPreview chatPreview) {
+        ActiveChat = ChatService.GetFullChatForChatPreview(chatPreview);
+        StateHasChanged();
+    }
+    
 }
