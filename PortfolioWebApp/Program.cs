@@ -14,6 +14,7 @@ using PortfolioWebApp.Models;
 using Serilog;
 using PortfolioWebApp.Services;
 using PortfolioWebApp.Services.Chat;
+using PortfolioWebApp.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,8 +66,7 @@ builder.Services.AddScoped<FriendshipService>();
 builder.Services.AddScoped<FriendRequestService>();
 builder.Services.AddScoped<FriendRequestClientService>();
 builder.Services.AddScoped<GlobalChatService>();
-builder.Services.AddScoped<DirectChatService>();
-builder.Services.AddScoped<IChatLoadingService, ChatLoadingService>();
+builder.Services.AddScoped<IDirectChatService, DirectDirectChatService>();
 
 builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
 
@@ -137,6 +137,39 @@ app.MapGet("/api/globalchat", async (AppDbContext dbContext) => {
         Content = m.Content,
         Created = m.Created
     });
+    return Results.Json(messageDtos);
+});
+
+app.MapGet("/api/directchat", async (
+    HttpContext http,
+    AppDbContext dbContext,
+    string chatPartner
+) => {
+    var user = http.User.Identity?.Name;
+
+    if (user == chatPartner) {
+        return Results.StatusCode(400); // can't request a chat with yourself
+    }
+
+    var messages = dbContext.DirectMessages
+        .Where(msg =>
+            (msg.FromUser.UserName.Equals(chatPartner) && msg.ToUser.UserName.Equals(user)) ||
+            (msg.FromUser.UserName.Equals(user) && msg.ToUser.UserName.Equals(chatPartner))
+        )
+        .Include(m => m.FromUser)
+        .Include(m => m.ToUser)
+        .OrderBy(m => m.Created)
+        .ToList();
+
+    var messageDtos = messages.Select(m => new DirectMessageDto(
+        m.FromUser.UserName,
+        m.ToUser.UserName,
+        m.Content,
+        m.Created,
+        m.Read,
+        m.Delivered
+    ));
+    
     return Results.Json(messageDtos);
 });
 
