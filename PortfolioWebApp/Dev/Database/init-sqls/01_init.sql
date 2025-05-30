@@ -18,11 +18,30 @@ INSERT INTO state (name) VALUES
     ('active'), ('inactive'), ('deleted');
 
 
+
+CREATE OR REPLACE FUNCTION random_hex_color()
+    RETURNS VARCHAR(7) AS $$
+DECLARE
+    r TEXT := to_hex(floor(random() * 256)::int);
+    g TEXT := to_hex(floor(random() * 256)::int);
+    b TEXT := to_hex(floor(random() * 256)::int);
+BEGIN
+    -- Stelle sicher, dass jeder Teil zweistellig ist (z. B. '0a' statt 'a')
+    r := lpad(r, 2, '0');
+    g := lpad(g, 2, '0');
+    b := lpad(b, 2, '0');
+    RETURN '#' || r || g || b;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 -- Benutzer-Tabelle
 CREATE TABLE IF NOT EXISTS appuser (
     id SERIAL PRIMARY KEY,
     username VARCHAR(20) NOT NULL, 
     password VARCHAR(255) NOT NULL,
+    profile_color VARCHAR(7) NOT NULL DEFAULT random_hex_color(),
     stateid SMALLINT NOT NULL DEFAULT 1 REFERENCES state(id),
     lastonline TIMESTAMP,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

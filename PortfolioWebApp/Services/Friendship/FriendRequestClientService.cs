@@ -88,8 +88,10 @@ public class FriendRequestClientService {
 
 
     public async Task SendRequestTo(string targetUser) {
-        var me = _httpContextAccessor.HttpContext?.User.Identity?.Name;
-        var requestDto = new FriendShipRequestDto(me, targetUser, DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified));
+        var myName = _httpContextAccessor.HttpContext?.User.Identity?.Name;
+        var me = new UserDto(myName,0,"");          // here we only know the names. the hub will fill the remaining parts of the dto and send a SendFriendRequestAck
+        var target = new UserDto(targetUser,0,"");
+        var requestDto = new FriendShipRequestDto(me, target, DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified));
         
         if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
             await _hubConnection.SendAsync("SendFriendRequest", requestDto);   

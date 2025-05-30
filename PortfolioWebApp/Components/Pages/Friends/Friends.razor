@@ -34,8 +34,10 @@
                                     <MudPaper Class="pa-2 mb-2" Style="background-color: transparent;">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                <MudAvatar Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
-                                                <MudText Typo="Typo.body1">@request.from</MudText>
+                                                <MudAvatar Size="Size.Small" Style="@($"background-color: {request.from.profile_color}")">
+                                                    @request.from.username.ToCharArray()[0].ToString().ToUpper()
+                                                </MudAvatar>
+                                                <MudText Typo="Typo.body1">@request.from.username</MudText>
                                             </MudStack>
                                             <MudStack Row="true" Spacing="1">
                                                 <MudTooltip Text="Accept" Arrow="true" Placement="Placement.Top">
@@ -62,8 +64,10 @@
                                     <MudPaper Class="pa-2 mb-2" Style="background-color: transparent;">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                <MudAvatar Icon="@Icons.Material.Filled.PersonOutline" Size="Size.Small"/>
-                                                <MudText Typo="Typo.body1">@request.to</MudText>
+                                                <MudAvatar Size="Size.Small" Style="@($"background-color: {request.to.profile_color}")">
+                                                    @request.to.username.ToCharArray()[0].ToString().ToUpper()
+                                                </MudAvatar>
+                                                <MudText Typo="Typo.body1">@request.to.username</MudText>
                                             </MudStack>
                                             <MudTooltip Text="Cancel" Arrow="true" Placement="Placement.Top">
                                                 <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Warning" Size="Size.Small"
@@ -99,21 +103,21 @@
                                       Clearable="true"/>
 
                         @if (_userSearchResult.Count > 0) {
-                            <MudList T="string" Dense="true">
+                            <MudList T="UserDto" Dense="true">
                                 @foreach (var user in _userSearchResult) {
                                     <MudListItem Style="cursor: pointer;" Class="hover:bg-grey-darken-3">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                             <MudStack Row="true">
-                                                <MudAvatar Icon="@Icons.Material.Filled.Person" Size="Size.Small"/>
-                                                <MudText Typo="Typo.body1">@user</MudText>
+                                                <MudAvatar Style="@($"background-color: {user.profile_color}")" Size="Size.Small">@user.username.ToUpper()[0]</MudAvatar>
+                                                <MudText Typo="Typo.body1">@user.username</MudText>
                                             </MudStack>
 
-                                            @if (FriendExists(user)) {
+                                            @if (FriendExists(user.username)) {
                                                 <MudChip Variant="Variant.Outlined" T="string" Label="true" Color="Color.Primary">
                                                     Already Friends
                                                 </MudChip>   
                                             }
-                                            else if (FriendRequestExists(user)) {
+                                            else if (FriendRequestExists(user.username)) {
                                                 <MudChip Variant="Variant.Outlined" T="string" Label="true" Color="Color.Warning">
                                                     Pending Friend Request
                                                 </MudChip>   
@@ -122,7 +126,7 @@
                                                 <MudButton Variant="Variant.Outlined"
                                                            Color="Color.Tertiary"
                                                            EndIcon="@Icons.Material.Filled.Send"
-                                                           OnClick="@(() => ShowAddFriendDialog(user))">
+                                                           OnClick="@(() => ShowAddFriendDialog(user.username))">
                                                     Add Friend
                                                 </MudButton>
                                             }
@@ -171,7 +175,7 @@
                                     if (friend.username.ToLower().Contains(_query.ToLower())) {
                                         <MudListItem>
                                             <div class="d-flex align-items-center gap-2">
-                                                <MudAvatar Size="Size.Medium"/>
+                                                <MudAvatar Size="Size.Medium" Style="@($"background-color: {friend.profile_color}")">@friend.username.ToUpper().ToCharArray()[0]</MudAvatar>
                                                 <MudText>@friend.username</MudText>
                                             </div>
                                         </MudListItem>
@@ -224,11 +228,11 @@
     }
     
     private void ReceiveFriendRequestEventHandler(FriendShipRequestDto request) {
-        Task.Run(async () => await UpdateFriendRequests());
+        Task.Run(async () => await UpdateFriendRequests()); // refactor this. no db call, just add it...
     }
 
     private void SendFriendRequestAckEventHandler(FriendShipRequestDto request) {
-        Task.Run(async () => await UpdateFriendRequests());
+        Task.Run(async () => await UpdateFriendRequests()); // refactor this. no db call. just add it...
     }
 
     private void ReceiveFriendRequestAnswerEventHandler(FriendShipRequestAnswerDto answer) {
@@ -251,10 +255,10 @@
 
     private void ReceiveFriendRequestCancellationEventHandler(FriendShipRequestDto cancelledRequest) {
         Task.Run(async () => {
-            if (myname.Equals(cancelledRequest.from)) {
+            if (myname.Equals(cancelledRequest.from.username)) {
                 _outgoingRequests.Remove(cancelledRequest);
             }
-            else if (myname.Equals(cancelledRequest.to)) {
+            else if (myname.Equals(cancelledRequest.to.username)) {
                 _incomingRequests.Remove(cancelledRequest);
             }
             else {
@@ -295,8 +299,8 @@
     }
     
     private bool FriendRequestExists(string user) {
-        return _incomingRequests.Any(request => request.from == user) ||
-               _outgoingRequests.Any(request => request.to == user);
+        return _incomingRequests.Any(request => request.from.username == user) ||
+               _outgoingRequests.Any(request => request.to.username == user);
     }
 
     private bool FriendExists(string user) {
@@ -315,7 +319,7 @@
     
     // -------- Search Users -----------
 
-    private List<string> _userSearchResult = new();
+    private List<UserDto> _userSearchResult = new();
 
     private void SearchUsers(string text) {
         if (text.Trim() == string.Empty) {
@@ -323,7 +327,7 @@
             return;
         }
         _userSearchResult = UserService.FindUsersByNameQuery(text)
-            .Select(u => u.UserName).ToList();
+            .Select(u => new UserDto(u.UserName, u.Id, u.ProfileColor)).ToList();
     }
     
     // -------- Add Friend --------------

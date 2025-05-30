@@ -26,7 +26,9 @@ namespace PortfolioWebApp.Services {
                 .ToList();
 
             return friendships.Select(f => f.User1.UserName.Equals(username, StringComparison.CurrentCultureIgnoreCase) 
-                ? new UserDto(f.User2.UserName, f.User2.Id) : new UserDto(f.User1.UserName, f.User1.Id)).ToList();
+                ? new UserDto(f.User2.UserName, f.User2.Id, f.User2.ProfileColor) 
+                : new UserDto(f.User1.UserName, f.User1.Id, f.User1.ProfileColor))
+                .ToList();
         }
         
         public void Save(Friendship friendship) {

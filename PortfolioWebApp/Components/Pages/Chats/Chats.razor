@@ -7,11 +7,11 @@
 
 <div style="display: flex; height: calc(100vh - 48px); overflow: hidden;">
     <!-- Left Area (Friends), fixed size -->
-    <MudContainer Style="width: 444px; height: calc(100vh - 48px); padding: 0; display: flex; flex-direction: column;">
+    <MudContainer Style="width: 444px; min-width:444px; height: calc(100vh - 48px); padding: 0; display: flex; flex-direction: column;">
         <MudCard Style="height:100%; display: flex; flex-direction: column;">
             <MudCardContent Style="flex: 1; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
                 
-                <MudText Typo="Typo.h6" Class="px-4 py-1">Your Friends</MudText>
+                <MudText Typo="Typo.h6" Class="px-4 py-1">Your Chats</MudText>
 
                 <div class="px-4">
                     <!-- put inside a div to prevent auto growing-->
@@ -68,34 +68,37 @@
                     }
                     else {
                         @foreach (var chat in _chatPreviews) {
-                            <MudListItem Class="py-4 px-4" OnClick="@(() => ChangeActiveChat(chat))">
-                                <div class="d-flex align-items-center w-100" style="gap: 12px;">
-                                    <!-- Avatar -->
-                                    <MudAvatar Style="width: 48px;height: 48px;font-size: 1.25rem;">A</MudAvatar>
+                            if (chat.ChatPartner.username.ToLower().Contains(_query.ToLower())) {
+                                <MudListItem Class="py-4 px-4" OnClick="@(() => ChangeActiveChat(chat))">
+                                    <div class="d-flex align-items-center w-100" style="gap: 12px;">
+                                        <!-- Avatar -->
+                                        <MudAvatar Style=@($"width: 48px;height: 48px;font-size: 1.25rem; background-color: {chat.ChatPartner.profile_color}")>
+                                            @chat.ChatPartner.username.ToCharArray()[0].ToString().ToUpper()
+                                        </MudAvatar>
 
-                                    <!-- Chat Info -->
-                                    <div class="flex-grow-1 d-flex flex-column justify-center" style="min-height: 48px; min-width: 0;">
-                                        <div class="d-flex justify-content-between align-items-center" style="min-width: 0;">
-                                            <MudText Typo="Typo.subtitle1"
-                                                     Class="fw-bold text-truncate"
-                                                     Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
-                                                @chat.ChatPartner.username
-                                            </MudText>
 
-                                            <MudText Typo="Typo.caption" Class="text-muted ms-2">
-                                                @chat.LatestMessage.Created
+                                        <!-- Chat Info -->
+                                        <div class="flex-grow-1 d-flex flex-column justify-center" style="min-height: 48px; min-width: 0;">
+                                            <div class="d-flex justify-content-between align-items-center" style="min-width: 0;">
+                                                <MudText Typo="Typo.subtitle1"
+                                                         Class="fw-bold text-truncate"
+                                                         Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                                                    @chat.ChatPartner.username
+                                                </MudText>
+
+                                                <MudText Typo="Typo.caption" Class="text-muted ms-2">
+                                                    @chat.LatestMessage.Created
+                                                </MudText>
+                                            </div>
+
+                                            <MudText Typo="Typo.body2" Class="text-truncate text-muted">
+                                                @chat.LatestMessage.Content
                                             </MudText>
                                         </div>
-
-                                        <MudText Typo="Typo.body2" Class="text-truncate text-muted">
-                                            @chat.LatestMessage.Content
-                                        </MudText>
                                     </div>
-                                </div>
-                            </MudListItem>
-
-
-                        }
+                                </MudListItem>
+                            } // if
+                        } // foreach
                     }
                 </MudList>
 

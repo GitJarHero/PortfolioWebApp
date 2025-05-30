@@ -23,6 +23,11 @@ namespace PortfolioWebApp.Models.Entities
         
         // EF Core sollte Junction Tabelle autom. verwalten
         public List<UserRole> Roles { get; set; } = new();
+        
+        [Required]
+        [MaxLength(7)] // e.g. #FF223E
+        [Column("profile_color")]
+        public string ProfileColor { get; set; }
 
         [Required]
         [Column("stateid")]

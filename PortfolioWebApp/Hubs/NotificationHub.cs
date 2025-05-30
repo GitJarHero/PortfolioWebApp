@@ -42,7 +42,7 @@ public class NotificationHub : Hub {
 
     // missing security check: request.from = session.user ?
     public async Task SendFriendRequest(FriendShipRequestDto request) {
-        var senderUser = _userService.FindUserByName(request.from);
+        var senderUser = _userService.FindUserByName(request.from.username);
         var sender = senderUser.UserName;
         
         if (string.IsNullOrEmpty(sender) || sender == "Anonymous") {
@@ -50,7 +50,7 @@ public class NotificationHub : Hub {
             throw new Exception("User not authenticated.");
         }
         
-        var targetUser = _userService.FindUserByName(request.to);
+        var targetUser = _userService.FindUserByName(request.to.username);
         if (targetUser == null) {
             throw new Exception("Target User not found: " + request.to);
         }
@@ -63,6 +63,11 @@ public class NotificationHub : Hub {
             return;
         }
         
+        // add missing data to the request because the client filled the request with only usernames
+        var from = new UserDto(request.from.username, senderUser.Id, senderUser.ProfileColor);
+        var to = new UserDto(request.to.username, targetUser.Id, targetUser.ProfileColor);
+        request = new FriendShipRequestDto(from, to, request.ceated);
+        
         await Clients.User(targetUser.Id.ToString()).SendAsync("ReceiveFriendRequest", request);
         
         // tells the sender that he can now refresh his friend requests / friend list
@@ -73,8 +78,8 @@ public class NotificationHub : Hub {
     // missing security check: request.from = session.user & is there a request in the db for that answer ?
     public async Task SendFriendRequestAnswer(FriendShipRequestAnswerDto answer) {
 
-        var from = _userService.FindUserByName(answer.request.from);
-        var to = _userService.FindUserByName(answer.request.to);
+        var from = _userService.FindUserByName(answer.request.from.username);
+        var to = _userService.FindUserByName(answer.request.to.username);
         
         if (answer.accepted) {
             var friendShip = new Friendship {
@@ -97,8 +102,8 @@ public class NotificationHub : Hub {
 
     // missing security check: request.from = session.user ?
     public async Task SendFriendRequestCancellation(FriendShipRequestDto request) {
-        var from = _userService.FindUserByName(request.from);
-        var to = _userService.FindUserByName(request.to);
+        var from = _userService.FindUserByName(request.from.username);
+        var to = _userService.FindUserByName(request.to.username);
         _friendRequestService.Delete(request);
         
         _logger.LogInformation("Sending 'ReceiveFriendRequestCancellation' Event to users: {from}, {to}", request.from, request.to);;

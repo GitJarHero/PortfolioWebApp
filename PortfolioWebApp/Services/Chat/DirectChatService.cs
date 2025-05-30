@@ -129,7 +129,7 @@ public class DirectChatService : IDirectChatService {
 
         foreach (var group in groupedMessages) {
             var chatPartner = group.Key;
-            var chatPartnerDto = new UserDto(chatPartner.UserName, chatPartner.Id);
+            var chatPartnerDto = new UserDto(chatPartner.UserName, chatPartner.Id, chatPartner.ProfileColor);
 
             var messageList = new List<DirectMessageDto>();
 
