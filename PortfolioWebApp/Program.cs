@@ -132,11 +132,11 @@ app.MapGet("/api/globalchat", async (AppDbContext dbContext) => {
         .OrderBy(m => m.Created)
         .Take(50)
         .ToListAsync();
-    var messageDtos = messages.Select(m => new Home.GlobalChatMessageDto {
-        User = m.User.UserName,
-        Content = m.Content,
-        Created = m.Created
-    });
+    var messageDtos = messages.Select(m => new GlobalChatMessageDto (
+        new UserDto(m.User.UserName, m.User.Id, m.User.ProfileColor),
+        m.Content,
+        m.Created
+    ));
     return Results.Json(messageDtos);
 });
 

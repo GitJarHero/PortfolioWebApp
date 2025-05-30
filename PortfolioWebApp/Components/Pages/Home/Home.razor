@@ -2,6 +2,7 @@
 
 @using PortfolioWebApp.Components.Layout
 @using PortfolioWebApp.Services.Chat
+@using PortfolioWebApp.Shared
 @layout MainLayout
 @rendermode InteractiveServer
 
@@ -54,7 +55,10 @@
                             <MudList T="GlobalChatMessageDto" Items="LastMessages" Dense="true">
                                 @foreach (var msg in _lastMessages) {
                                     <MudListItem>
-                                        <b>@msg.User:</b> @msg.Content
+                                        <span style="@($"color: {msg.User.profile_color}")">
+                                            <b>@msg.User.username:</b>
+                                        </span>
+                                        @msg.Content
                                         <br />
                                         <small class="text-muted">@FormatTimestamp(msg.Created)</small>
                                     </MudListItem>
@@ -87,12 +91,7 @@
     private List<GlobalChatMessageDto> _lastMessages = new();
     private bool _isLoading = true;
     private bool _initialized = false;
-
-    public class GlobalChatMessageDto {
-        public string User { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        public DateTime Created { get; set; } // ⬅️ neu
-    }
+    
 
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
@@ -116,13 +115,14 @@
     private async Task SendMessage() {
         if (string.IsNullOrWhiteSpace(_newMessage)) return;
 
-        var messageEntity = new GlobalChatMessageDto() {
-            Content = _newMessage,
-            Created = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
-            User = AuthStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name,
-        };
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        string myName = authState.User.Identity.Name;
+
+        var myUser = new UserDto(myName, 0, "");
+
+        var message = new GlobalChatMessageDto(myUser, _newMessage, DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified));
         
-        GlobalChatService.SendMessage(messageEntity);
+        GlobalChatService.SendMessage(message);
         _newMessage = string.Empty;
     }
 

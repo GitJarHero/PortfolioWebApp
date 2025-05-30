@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using PortfolioWebApp.Components.Pages.Home;
 using PortfolioWebApp.Hubs;
+using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services.Chat;
 
@@ -15,7 +16,7 @@ public class GlobalChatService {
 
     private HubConnection? hubConnection;
     
-    public event Func<Home.GlobalChatMessageDto, Task>? OnMessageCallback;
+    public event Func<GlobalChatMessageDto, Task>? OnMessageCallback;
 
 
     
@@ -54,7 +55,7 @@ public class GlobalChatService {
             .Build();
 
 
-        hubConnection.On<Home.GlobalChatMessageDto>("ReceiveMessage", async (message) => {
+        hubConnection.On<GlobalChatMessageDto>("ReceiveMessage", async (message) => {
             if (OnMessageCallback != null) {
                 await OnMessageCallback.Invoke(message);
             }
@@ -64,7 +65,7 @@ public class GlobalChatService {
     }
     
 
-    public async Task SendMessage(Home.GlobalChatMessageDto message) {
+    public async Task SendMessage(GlobalChatMessageDto message) {
         if (hubConnection!.State == HubConnectionState.Connected) {
             await hubConnection.SendAsync("BroadcastMessage", message);    
         }
@@ -79,11 +80,11 @@ public class GlobalChatService {
         }
     }
     
-    public async Task<List<Home.GlobalChatMessageDto>> LoadLatestMessages() {
+    public async Task<List<GlobalChatMessageDto>> LoadLatestMessages() {
         
         var response = await _httpClient.GetAsync("/api/globalchat");
-        var messages = await response.Content.ReadFromJsonAsync<List<Home.GlobalChatMessageDto>>();
+        var messages = await response.Content.ReadFromJsonAsync<List<GlobalChatMessageDto>>();
        
-        return messages ?? new List<Home.GlobalChatMessageDto>();
+        return messages ?? new List<GlobalChatMessageDto>();
     }
 }

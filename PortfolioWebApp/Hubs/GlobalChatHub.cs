@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PortfolioWebApp.Components.Pages.Home;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
+using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Hubs;
 
@@ -32,7 +33,7 @@ public class GlobalChatHub : Hub {
 
 
 
-    public async Task BroadcastMessage(Home.GlobalChatMessageDto messageDto) {
+    public async Task BroadcastMessage(GlobalChatMessageDto messageDto) {
         var userName = Context.User?.Identity?.Name;
 
         if (string.IsNullOrEmpty(userName)) {
@@ -56,6 +57,10 @@ public class GlobalChatHub : Hub {
 
         _dbContext.GlobalMessages.Add(message);
         await _dbContext.SaveChangesAsync();
+        
+        // add missing data to the UserDto
+        var completeUserDto = new UserDto(message.User.UserName, user.Id, user.ProfileColor);
+        messageDto = messageDto with { User = completeUserDto };
 
         await Clients.All.SendAsync("ReceiveMessage", messageDto);
     }
