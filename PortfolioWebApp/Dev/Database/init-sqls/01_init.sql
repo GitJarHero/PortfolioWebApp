@@ -22,21 +22,32 @@ INSERT INTO state (name) VALUES
 CREATE OR REPLACE FUNCTION random_hex_color()
     RETURNS VARCHAR(7) AS $$
 DECLARE
-    r TEXT := to_hex(floor(random() * 256)::int);
-    g TEXT := to_hex(floor(random() * 256)::int);
-    b TEXT := to_hex(floor(random() * 256)::int);
+    r INT;
+    g INT;
+    b INT;
+    luminance FLOAT;
 BEGIN
-    -- Stelle sicher, dass jeder Teil zweistellig ist (z. B. '0a' statt 'a')
-    r := lpad(r, 2, '0');
-    g := lpad(g, 2, '0');
-    b := lpad(b, 2, '0');
-    RETURN '#' || r || g || b;
+    LOOP
+        r := floor(random() * 256)::int;
+        g := floor(random() * 256)::int;
+        b := floor(random() * 256)::int;
+
+        -- Luminanz berechnen
+        luminance := 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+        -- Nur Farbn mit mittlerer Helligkeit zulassen
+        IF luminance > 64 AND luminance < 192 THEN
+            RETURN '#' || lpad(to_hex(r), 2, '0') ||
+                   lpad(to_hex(g), 2, '0') ||
+                   lpad(to_hex(b), 2, '0');
+        END IF;
+    END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
 
 
--- Benutzer-Tabelle
+
 CREATE TABLE IF NOT EXISTS appuser (
     id SERIAL PRIMARY KEY,
     username VARCHAR(20) NOT NULL, 
@@ -115,7 +126,6 @@ INSERT INTO appuser (username, password) VALUES
     ('Zack', 'QBB63HY9ylKmnok7Sl7jfktpGFlYe0xsFgmgz9EYAALdPlADej5DO/eBnMaAHtIw');
 
 
--- Benutzer-Rollen-Zuordnung
 CREATE TABLE IF NOT EXISTS map_user_role (
     user_id INT NOT NULL REFERENCES appuser(id) ON DELETE CASCADE,
     role_id SMALLINT NOT NULL REFERENCES userrole(id),
