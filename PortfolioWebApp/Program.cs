@@ -11,6 +11,7 @@ using PortfolioWebApp.Components.Pages.Home;
 using PortfolioWebApp.Hubs;
 using PortfolioWebApp.Hubs.Connection;
 using PortfolioWebApp.Models;
+using PortfolioWebApp.Repositories;
 using Serilog;
 using PortfolioWebApp.Services;
 using PortfolioWebApp.Services.Chat;
@@ -67,6 +68,7 @@ builder.Services.AddScoped<FriendRequestService>();
 builder.Services.AddScoped<FriendRequestClientService>();
 builder.Services.AddScoped<GlobalChatService>();
 builder.Services.AddScoped<IDirectChatService, DirectChatService>();
+builder.Services.AddScoped<DirectMessageRepository>();
 
 builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();
 
@@ -126,7 +128,8 @@ app.MapGet("/Account/Logout", async (HttpContext context) => {
     return Results.Redirect("/");
 });
 
-app.MapGet("/api/globalchat", async (AppDbContext dbContext) => {
+var globalChatApiUrl = builder.Configuration["API:GlobalChat"] ?? throw new Exception("URL for API:GlobalChat not configured");
+app.MapGet(globalChatApiUrl, async (AppDbContext dbContext) => {
     var messages = await dbContext.GlobalMessages
         .Include(m => m.User)
         .OrderBy(m => m.Created)
@@ -140,18 +143,15 @@ app.MapGet("/api/globalchat", async (AppDbContext dbContext) => {
     return Results.Json(messageDtos);
 });
 
-app.MapGet("/api/directchat", async (
-    HttpContext http,
-    AppDbContext dbContext,
-    string chatPartner
-) => {
+var directChatApiUrl = builder.Configuration["API:DirectChat"] ?? throw new Exception("URL for API:DirectChat not configured");
+app.MapGet(directChatApiUrl, async (HttpContext http, AppDbContext dbContext, string chatPartner) => {
     var user = http.User.Identity?.Name;
 
     if (user == chatPartner) {
         return Results.StatusCode(400); // can't request a chat with yourself
     }
 
-    var messages = dbContext.DirectMessages
+    var messages = await dbContext.DirectMessages
         .Where(msg =>
             (msg.FromUser.UserName.Equals(chatPartner) && msg.ToUser.UserName.Equals(user)) ||
             (msg.FromUser.UserName.Equals(user) && msg.ToUser.UserName.Equals(chatPartner))
@@ -159,15 +159,17 @@ app.MapGet("/api/directchat", async (
         .Include(m => m.FromUser)
         .Include(m => m.ToUser)
         .OrderBy(m => m.Created)
-        .ToList();
+        .ToListAsync();
 
-    var messageDtos = messages.Select(m => new DirectMessageDto(
-        m.FromUser.UserName,
-        m.ToUser.UserName,
-        m.Content,
-        m.Created,
-        m.Read,
-        m.Delivered
+    var messageDtos = messages.Select(
+        m => new DirectMessageDto(
+            m.Id,
+            new UserDto(m.FromUser.UserName, m.FromUser.Id, m.FromUser.ProfileColor),
+            new UserDto(m.ToUser.UserName, m.ToUser.Id, m.ToUser.ProfileColor),
+            m.Content,
+            m.Created,
+            m.Read,
+            m.Delivered
     ));
     
     return Results.Json(messageDtos);
@@ -176,7 +178,12 @@ app.MapGet("/api/directchat", async (
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapHub<GlobalChatHub>("/globalchathub");
-app.MapHub<NotificationHub>("/notificationhub");
+var globalChatHubUrl = builder.Configuration["SignalR:Url:GlobalChatHub"] 
+                       ?? throw new Exception("URL for SignalR:Url:GlobalChatHub not configured");
+app.MapHub<GlobalChatHub>(globalChatHubUrl);
+
+var notificationHubUrl = builder.Configuration["SignalR:Url:NotificationHub"] 
+                         ?? throw new Exception("URL for SignalR:Url:NotificationHub not configured");
+app.MapHub<NotificationHub>(notificationHubUrl);
 
 app.Run();

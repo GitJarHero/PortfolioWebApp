@@ -21,7 +21,7 @@
             {
                 var group = groupedMessages[i];
                 var lastMessage = group.Last();
-                var isCurrentUser = lastMessage.To == ChatData.Key.username;
+                var isCurrentUser = lastMessage.To.username == ChatData.Key.username;
                 var position = isCurrentUser ? ChatBubblePosition.End : ChatBubblePosition.Start;
 
                 <MudChat ChatPosition="@position">
@@ -75,10 +75,10 @@
         string? lastSender = null;
 
         foreach (var message in messages) {
-            if (lastSender != message.From) {
+            if (lastSender != message.From.username) {
                 currentGroup = new List<DirectMessageDto>();
                 result.Add(currentGroup);
-                lastSender = message.From;
+                lastSender = message.From.username;
             }
             currentGroup!.Add(message);
         }

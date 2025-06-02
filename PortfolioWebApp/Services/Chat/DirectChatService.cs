@@ -3,38 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using PortfolioWebApp.Components.Pages.Chats;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
+using PortfolioWebApp.Repositories;
 using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services.Chat;
 
-public interface IDirectChatService {
-    
-    public enum ChatPreviewFilter {
-        All,
-        Unread,
-        Favorites,
-        Groups
-    }
-    
-    public Task LoadChatsAsync(string user);
-
-    public bool ChatsLoaded();
-    
-    public event Action<int,string>? OnProgressChanged;
-
-    public List<ChatPreview> GetChatPreviews(ChatPreviewFilter filter);
-
-    public KeyValuePair<UserDto, List<DirectMessageDto>> GetFullChatForChatPreview(ChatPreview chatPreview);
-    
-}
-
 public class DirectChatService : IDirectChatService {
 
     private readonly ILogger<DirectChatService> _logger;
-    private readonly AppDbContext _appDbContext;
     private readonly AuthenticationStateProvider _authenticationStateProvider;
+    private readonly DirectMessageRepository _directMessageRepository;
+    private readonly UserService _userService;
 
-    private int progress = 0;
+    private int _progress;
     public event Action<int, string>? OnProgressChanged;
     
     private Dictionary<UserDto, List<DirectMessageDto>> _chats = new();
@@ -42,13 +23,15 @@ public class DirectChatService : IDirectChatService {
     
     public DirectChatService(
         ILogger<DirectChatService> logger, 
-        AppDbContext appDbContext,
-        AuthenticationStateProvider authenticationStateProvider
+        AuthenticationStateProvider authenticationStateProvider,
+        DirectMessageRepository directMessageRepository,
+        UserService userService
     ) {
         _logger = logger;
         _logger.LogInformation("ChatLoadingService initialized");
-        _appDbContext = appDbContext;
         _authenticationStateProvider = authenticationStateProvider;
+        _directMessageRepository = directMessageRepository;
+        _userService = userService;
     }
 
     
@@ -63,7 +46,7 @@ public class DirectChatService : IDirectChatService {
             var latestMessage = messages.FirstOrDefault();
             var authState = _authenticationStateProvider.GetAuthenticationStateAsync();
             var me = authState.Result.User.Identity?.Name;
-            var unreadMessagesCount = messages.Count(m => m.To == me && m.Read == null);
+            var unreadMessagesCount = messages.Count(m => m.To.username == me && m.Read == null);
             
             switch (filter) {
                 
@@ -103,23 +86,16 @@ public class DirectChatService : IDirectChatService {
         }
         throw new KeyNotFoundException("Chat not found for the provided ChatPreview.");
     }
-
-
-
-
-    
     
     public async Task LoadChatsAsync(string myUsername) {
         
-        OnProgressChanged?.Invoke(progress, "Loading chats...");
+        OnProgressChanged?.Invoke(_progress, "Loading chats...");
         
-        var me = await _appDbContext.Users.FirstOrDefaultAsync(u => u.UserName == myUsername) ?? throw new Exception("User not found");
+        var me = _userService.FindUserByName(myUsername);
+        var messages = await _directMessageRepository.GetAllByUserAsync(me.Id);
         
-        var messages = await _appDbContext.DirectMessages
-            .Where(m => m.FromUser.Id == me.Id || m.ToUser.Id == me.Id)
-            .Include(m => m.FromUser)
-            .Include(m => m.ToUser)
-            .ToListAsync();
+        _progress = 50;
+        OnProgressChanged?.Invoke(_progress, "Loading chats...");
         
         var chatDict = new Dictionary<UserDto, List<DirectMessageDto>>();  
         
@@ -135,12 +111,13 @@ public class DirectChatService : IDirectChatService {
 
             foreach (var message in group) {
                 var messageDto = new DirectMessageDto(
-                    From: message.FromUser.UserName,
-                    To: message.ToUser.UserName,
-                    Content: message.Content,
-                    Created: message.Created,
-                    Read: message.Read,
-                    Delivered: message.Delivered
+                    message.Id,
+                    new UserDto(message.FromUser.UserName, message.FromUser.Id, message.FromUser.ProfileColor),
+                    new UserDto(message.ToUser.UserName, message.ToUser.Id, message.ToUser.ProfileColor),
+                    message.Content,
+                    message.Created,
+                    message.Read,
+                    message.Delivered
                 );
                 messageList.Add(messageDto);
             }
@@ -153,15 +130,12 @@ public class DirectChatService : IDirectChatService {
         }
         
         _chats = chatDict;
-        progress = 100;
+        _progress = 100;
         OnProgressChanged?.Invoke(100, "Done");
     }
 
-    
-
-
     public bool ChatsLoaded() {
-        return progress == 100;
+        return _progress == 100;
     }
     
 }

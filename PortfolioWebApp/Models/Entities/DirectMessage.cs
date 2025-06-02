@@ -4,22 +4,19 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PortfolioWebApp.Models.Entities;
 
 [Table("directmessage")]
-public class DirectMessage
+public class DirectMessage : EntityBase
 {
-    [Key]
-    [Column("id")]
-    public int Id { get; set; }
 
     [Required]
     [Column("content", TypeName = "text")]
     public string Content { get; set; } = string.Empty;
     
     [Required]
-    [Column("from")]
+    [ForeignKey("from")]
     public User FromUser { get; set; }
 
     [Required]
-    [Column("to")]
+    [ForeignKey("to")]
     public User ToUser { get; set; }
     
     [Required]
