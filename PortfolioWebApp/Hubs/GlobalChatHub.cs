@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using PortfolioWebApp.Components.Pages.Home;
+using ClientEvents = PortfolioWebApp.Shared.HubEvents.GlobalChat.Client;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
 using PortfolioWebApp.Shared;
@@ -62,6 +62,6 @@ public class GlobalChatHub : Hub {
         var completeUserDto = new UserDto(message.User.UserName, user.Id, user.ProfileColor);
         messageDto = messageDto with { User = completeUserDto };
 
-        await Clients.All.SendAsync("ReceiveMessage", messageDto);
+        await Clients.All.SendAsync(ClientEvents.Receive, messageDto);
     }
 }

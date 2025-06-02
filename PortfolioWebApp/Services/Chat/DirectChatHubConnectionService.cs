@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
+using ClientEvents = PortfolioWebApp.Shared.HubEvents.DirectChat.Client;
+using ServerEvents = PortfolioWebApp.Shared.HubEvents.DirectChat.Server;
 using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services.Chat;
@@ -11,7 +13,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     private readonly NavigationManager _navigation;
     private readonly ILogger<DirectChatHubConnectionService> _logger;
     
-    public event Action<DirectMessageDto>? MessageReceived;
+    public event Action<DirectMessageDto>? ReceiveMessage;
     public event Action<DirectMessageDto>? MessageSentAcknowledgement;
     public event Action<MessageDeliveredDto>? MessageDelivered;
     public event Action<MessageReadDto>? MessageRead;
@@ -42,17 +44,17 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
                 );
             })
             .Build();
-
-        _hubConnection.On<DirectMessageDto>("ReceiveMessage", (message) => {
-            MessageReceived?.Invoke(message);
+        
+        _hubConnection.On<DirectMessageDto>(ClientEvents.MessageReceived, (message) => {
+            ReceiveMessage?.Invoke(message);
         });
-        _hubConnection.On<DirectMessageDto>("MessageSentAcknowledgement", (message) => {
+        _hubConnection.On<DirectMessageDto>(ClientEvents.MessageAcknowledged, (message) => {
             MessageSentAcknowledgement?.Invoke(message);
         });
-        _hubConnection.On<MessageDeliveredDto>("MessageDelivered", (message) => {
+        _hubConnection.On<MessageDeliveredDto>(ClientEvents.MessageDelivered, (message) => {
             MessageDelivered?.Invoke(message);
         });
-        _hubConnection.On<MessageReadDto>("MessageRead", (message) => {
+        _hubConnection.On<MessageReadDto>(ClientEvents.MessageRead, (message) => {
             MessageRead?.Invoke(message);
         });
         
@@ -67,7 +69,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     
     public async Task Send(DirectMessageDto message) {
         if (_hubConnection is { State: HubConnectionState.Connected }) {
-            await _hubConnection.SendAsync("SendMessage", message);
+            await _hubConnection.SendAsync(ServerEvents.Send, message);
         } 
         else {
             throw new Exception("Cannot send message. Not connected");
@@ -76,7 +78,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     
     public async Task SendMessageDelivered(MessageDeliveredDto dto) {
         if (_hubConnection is { State: HubConnectionState.Connected }) {
-            await _hubConnection.SendAsync("SendMessageDelivered", dto);
+            await _hubConnection.SendAsync(ServerEvents.SendDelivered, dto);
         } 
         else {
             throw new Exception("Cannot send message. Not connected");
@@ -85,7 +87,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     
     public async Task SendMessageRead(MessageReadDto dto) {
         if (_hubConnection is { State: HubConnectionState.Connected }) {
-            await _hubConnection.SendAsync("SendMessageRead", dto);
+            await _hubConnection.SendAsync(ServerEvents.SendRead, dto);
         } 
         else {
             throw new Exception("Cannot send message. Not connected");

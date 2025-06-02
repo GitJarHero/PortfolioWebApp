@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR;
+using ServerEvents = PortfolioWebApp.Shared.HubEvents.GlobalChat.Server;
+using ClientEvents = PortfolioWebApp.Shared.HubEvents.GlobalChat.Client;
 using Microsoft.AspNetCore.SignalR.Client;
-using PortfolioWebApp.Components.Pages.Home;
-using PortfolioWebApp.Hubs;
 using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services.Chat;
@@ -56,7 +55,7 @@ public class GlobalChatService {
             .Build();
 
 
-        _hubConnection.On<GlobalChatMessageDto>("ReceiveMessage", async (message) => {
+        _hubConnection.On<GlobalChatMessageDto>(ClientEvents.Receive, async (message) => {
             if (OnMessageCallback != null) {
                 await OnMessageCallback.Invoke(message);
             }
@@ -68,7 +67,7 @@ public class GlobalChatService {
 
     public async Task SendMessage(GlobalChatMessageDto message) {
         if (_hubConnection?.State == HubConnectionState.Connected) {
-            await _hubConnection.SendAsync("BroadcastMessage", message);    
+            await _hubConnection.SendAsync(ServerEvents.BroadCast, message);    
         }
         else {
             Console.WriteLine("Failed to send message. Not connected to hub!");

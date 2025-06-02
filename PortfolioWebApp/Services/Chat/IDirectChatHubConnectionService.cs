@@ -5,7 +5,7 @@ namespace PortfolioWebApp.Services.Chat;
 public interface IDirectChatHubConnectionService {
 
     // invoked, when the user receives a direct message from the hub
-    event Action<DirectMessageDto> MessageReceived;
+    event Action<DirectMessageDto> ReceiveMessage;
     
     // invoked, when the hub received and handled the message
     event Action<DirectMessageDto> MessageSentAcknowledgement;
