@@ -11,7 +11,7 @@ namespace PortfolioWebApp.Hubs;
 public class NotificationHub : Hub {
     
     private readonly ILogger<NotificationHub> _logger;
-    private readonly INotificationConnectionStorage _storage;
+    private readonly INotificationConnectionStorage _storage;  // probably not needed since it's ok to send a message to an offline user
     private readonly FriendRequestService _friendRequestService;
     private readonly FriendshipService _friendshipService;
     private readonly UserService _userService;
