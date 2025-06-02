@@ -45,17 +45,18 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
             })
             .Build();
         
-        _hubConnection.On<DirectMessageDto>(ClientEvents.MessageReceived, (message) => {
-            ReceiveMessage?.Invoke(message);
+        
+        _hubConnection.OnHubEvent<ClientEvents.MessageReceivedEvent>(async (message) => {
+            ReceiveMessage?.Invoke(message.Payload);
         });
-        _hubConnection.On<DirectMessageDto>(ClientEvents.MessageAcknowledged, (message) => {
-            MessageSentAcknowledgement?.Invoke(message);
+        _hubConnection.OnHubEvent<ClientEvents.MessageAcknowledgedEvent>(async (message) => {
+            MessageSentAcknowledgement?.Invoke(message.Payload);
         });
-        _hubConnection.On<MessageDeliveredDto>(ClientEvents.MessageDelivered, (message) => {
-            MessageDelivered?.Invoke(message);
+        _hubConnection.OnHubEvent<ClientEvents.MessageDeliveredEvent>(async (message) => {
+            MessageDelivered?.Invoke(message.Payload);
         });
-        _hubConnection.On<MessageReadDto>(ClientEvents.MessageRead, (message) => {
-            MessageRead?.Invoke(message);
+        _hubConnection.OnHubEvent<ClientEvents.MessageReadEvent>(async (message) => {
+            MessageRead?.Invoke(message.Payload);
         });
         
         await _hubConnection.StartAsync();
@@ -69,7 +70,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     
     public async Task Send(DirectMessageDto message) {
         if (_hubConnection is { State: HubConnectionState.Connected }) {
-            await _hubConnection.SendAsync(ServerEvents.Send, message);
+            await _hubConnection.SendHubEventAsync(new ServerEvents.SendMessageEvent(message));
         } 
         else {
             throw new Exception("Cannot send message. Not connected");
@@ -78,7 +79,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     
     public async Task SendMessageDelivered(MessageDeliveredDto dto) {
         if (_hubConnection is { State: HubConnectionState.Connected }) {
-            await _hubConnection.SendAsync(ServerEvents.SendDelivered, dto);
+            await _hubConnection.SendHubEventAsync(new ServerEvents.MessageDeliveredEvent(dto));
         } 
         else {
             throw new Exception("Cannot send message. Not connected");
@@ -87,7 +88,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     
     public async Task SendMessageRead(MessageReadDto dto) {
         if (_hubConnection is { State: HubConnectionState.Connected }) {
-            await _hubConnection.SendAsync(ServerEvents.SendRead, dto);
+            await _hubConnection.SendHubEventAsync(new ServerEvents.MessageReadEvent(dto));
         } 
         else {
             throw new Exception("Cannot send message. Not connected");

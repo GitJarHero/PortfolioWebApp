@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using ClientEvents = PortfolioWebApp.Shared.HubEvents.GlobalChat.Client;
+using MessageReceivedEvent = PortfolioWebApp.Shared.HubEvents.GlobalChat.Client.MessageReceivedEvent;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
 using PortfolioWebApp.Shared;
@@ -33,9 +33,10 @@ public class GlobalChatHub : Hub {
 
 
 
-    public async Task BroadcastMessage(GlobalChatMessageDto messageDto) {
+    public async Task BroadcastMessage(HubEvents.GlobalChat.Server.BroadCastEvent e) {
         var userName = Context.User?.Identity?.Name;
-
+        var messageDto = e.Payload;
+        
         if (string.IsNullOrEmpty(userName)) {
             _logger.LogError("Failed to retrieve user name from context (ConnectionId: {ConnectionId})", Context.ConnectionId);
             throw new Exception("User not authenticated.");
@@ -62,6 +63,7 @@ public class GlobalChatHub : Hub {
         var completeUserDto = new UserDto(message.User.UserName, user.Id, user.ProfileColor);
         messageDto = messageDto with { User = completeUserDto };
 
-        await Clients.All.SendAsync(ClientEvents.Receive, messageDto);
+        _logger.LogDebug("messageDto is: " + messageDto);
+        await Clients.All.SendEventAsync(new MessageReceivedEvent(messageDto));
     }
 }

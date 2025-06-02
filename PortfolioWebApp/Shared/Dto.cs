@@ -5,7 +5,7 @@ namespace PortfolioWebApp.Shared {
     public record FriendShipRequestDto(UserDto from, UserDto to, DateTime ceated);
 
     public record FriendShipRequestAnswerDto(FriendShipRequestDto request, bool accepted);
-
+    
     public record GlobalChatMessageDto(UserDto User, string Content, DateTime Created);
 
     public record DirectMessageDto(

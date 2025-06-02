@@ -6,12 +6,14 @@ public static class HubEvents
     {
         public static class Server
         {
-            public const string BroadCast = "BroadcastMessage";
+            [HubEvent(EventName = "BroadcastMessage")]
+            public record BroadCastEvent(GlobalChatMessageDto Payload);
         }
 
         public static class Client
         {
-            public const string Receive = "ReceiveMessage";
+            [HubEvent(EventName = "ReceiveMessage")]
+            public record MessageReceivedEvent(GlobalChatMessageDto Payload);
         }
     }
 
@@ -19,18 +21,29 @@ public static class HubEvents
     {
         public static class Server
         {
-            public const string Send = "SendMessage";
-            public const string SendDelivered = "SendMessageDelivered";
-            public const string SendRead = "SendMessageRead";
+            [HubEvent(EventName = "SendMessage")]
+            public record SendMessageEvent(DirectMessageDto Payload);
+
+            [HubEvent(EventName = "SendMessageDelivered")]
+            public record MessageDeliveredEvent(MessageDeliveredDto Payload);
+
+            [HubEvent(EventName = "SendMessageRead")]
+            public record MessageReadEvent(MessageReadDto Payload);
         }
 
         public static class Client
         {
-            public const string MessageReceived = "ReceiveDirectMessage";
-            public const string MessageAcknowledged = "MessageSentAcknowledgement";
-            public const string MessageDelivered = "MessageDelivered";
-            public const string MessageRead = "MessageRead";
-            
+            [HubEvent(EventName = "ReceiveDirectMessage")]
+            public record MessageReceivedEvent(DirectMessageDto Payload);
+
+            [HubEvent(EventName = "MessageSentAcknowledgement")]
+            public record MessageAcknowledgedEvent(DirectMessageDto Payload);
+
+            [HubEvent(EventName = "MessageDelivered")]
+            public record MessageDeliveredEvent(MessageDeliveredDto Payload);
+
+            [HubEvent(EventName = "MessageRead")]
+            public record MessageReadEvent(MessageReadDto Payload);
         }
     }
 }

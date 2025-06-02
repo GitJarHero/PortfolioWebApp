@@ -55,9 +55,9 @@ public class GlobalChatService {
             .Build();
 
 
-        _hubConnection.On<GlobalChatMessageDto>(ClientEvents.Receive, async (message) => {
+        _hubConnection.OnHubEvent<ClientEvents.MessageReceivedEvent>(async (message) => {
             if (OnMessageCallback != null) {
-                await OnMessageCallback.Invoke(message);
+                await OnMessageCallback.Invoke(message.Payload);
             }
         });
 
@@ -67,7 +67,7 @@ public class GlobalChatService {
 
     public async Task SendMessage(GlobalChatMessageDto message) {
         if (_hubConnection?.State == HubConnectionState.Connected) {
-            await _hubConnection.SendAsync(ServerEvents.BroadCast, message);    
+            await _hubConnection.SendHubEventAsync(new ServerEvents.BroadCastEvent(message));    
         }
         else {
             Console.WriteLine("Failed to send message. Not connected to hub!");
