@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 
 namespace PortfolioWebApp.Services;
 
+// not needed but kept for debugging or maybe later an "current online users" feature
 public class TrackingCircuitHandler : CircuitHandler {
     
     private readonly IHttpContextAccessor _httpContextAccessor;
