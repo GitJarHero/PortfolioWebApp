@@ -19,8 +19,8 @@ namespace PortfolioWebApp.Shared {
 
     public record ChatPreview(UserDto ChatPartner, DirectMessageDto? LatestMessage, int NewMessagesCount);
     
-    public record MessageDeliveredDto(int SenderUserId, int TargetUserId, int MessageId);
+    public record MessageDeliveredDto(List<int> DeliveredMessages, DateTime TimeStamp);
     
-    public record MessageReadDto(int SenderUserId, int ReaderUserId, int MessageId);
+    public record MessageReadDto(List<int> ReadMessages, DateTime TimeStamp);
     
 }
