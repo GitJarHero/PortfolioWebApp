@@ -64,6 +64,6 @@ public class GlobalChatHub : Hub {
         messageDto = messageDto with { User = completeUserDto };
 
         _logger.LogDebug("messageDto is: " + messageDto);
-        await Clients.All.SendEventAsync(new MessageReceivedEvent(messageDto));
+        await Clients.All.SendHubEventAsync(new MessageReceivedEvent(messageDto));
     }
 }

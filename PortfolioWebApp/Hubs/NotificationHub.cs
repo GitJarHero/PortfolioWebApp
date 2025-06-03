@@ -4,6 +4,8 @@ using PortfolioWebApp.Hubs.Connection;
 using PortfolioWebApp.Models.Entities;
 using PortfolioWebApp.Services;
 using PortfolioWebApp.Shared;
+using ServerEvents = PortfolioWebApp.Shared.HubEvents.FriendRequest.Server;
+using ClientEvents = PortfolioWebApp.Shared.HubEvents.FriendRequest.Client;
 
 namespace PortfolioWebApp.Hubs;
 
@@ -41,7 +43,8 @@ public class NotificationHub : Hub {
     }
 
     // missing security check: request.from = session.user ?
-    public async Task SendFriendRequest(FriendShipRequestDto request) {
+    public async Task SendFriendRequest(ServerEvents.SendFriendRequestEvent evnt) {
+        var request = evnt.Payload;
         var senderUser = _userService.FindUserByName(request.from.username);
         var sender = senderUser.UserName;
         
@@ -68,16 +71,18 @@ public class NotificationHub : Hub {
         var to = new UserDto(request.to.username, targetUser.Id, targetUser.ProfileColor);
         request = new FriendShipRequestDto(from, to, request.ceated);
         
-        await Clients.User(targetUser.Id.ToString()).SendAsync("ReceiveFriendRequest", request);
+        await Clients.User(targetUser.Id.ToString())
+            .SendHubEventAsync(new ClientEvents.ReceiveFriendRequestEvent(request));
         
         // tells the sender that he can now refresh his friend requests / friend list
         _logger.LogInformation("Sending 'SendFriendRequestAck' Event to user: {from}", sender);
-        await Clients.User(senderUser.Id.ToString()).SendAsync("SendFriendRequestAck", request);
+        await Clients.User(senderUser.Id.ToString())
+            .SendHubEventAsync(new ClientEvents.FriendRequestSentAcknowledgedEvent(request));
     }
 
     // missing security check: request.from = session.user & is there a request in the db for that answer ?
-    public async Task SendFriendRequestAnswer(FriendShipRequestAnswerDto answer) {
-
+    public async Task SendFriendRequestAnswer(ServerEvents.SendFriendRequestAnswerEvent evnt) {
+        var answer = evnt.Payload;
         var from = _userService.FindUserByName(answer.request.from.username);
         var to = _userService.FindUserByName(answer.request.to.username);
         
@@ -93,20 +98,25 @@ public class NotificationHub : Hub {
         _friendRequestService.Delete(answer.request);
         
         _logger.LogInformation("Sending 'ReceiveFriendRequestAnswer' Event to user: {to}", to.UserName);
-        await Clients.User(from.Id.ToString()).SendAsync("ReceiveFriendRequestAnswer", answer);
+        await Clients.User(from.Id.ToString())
+            .SendHubEventAsync(new ClientEvents.ReceiveFriendRequestAnswerEvent(answer));
         
         // tells the sender that he can now refresh his friend requests / friend list
         _logger.LogInformation("Sending 'SendFriendRequestAnswerAck' Event to user: {from}", from.UserName);
-        await Clients.User(to.Id.ToString()).SendAsync("SendFriendRequestAnswerAck", answer);
+        await Clients.User(to.Id.ToString())
+            .SendHubEventAsync(new ClientEvents.FriendRequestAnswerAcknowledgedEvent(answer));
     }
 
     // missing security check: request.from = session.user ?
-    public async Task SendFriendRequestCancellation(FriendShipRequestDto request) {
-        var from = _userService.FindUserByName(request.from.username);
-        var to = _userService.FindUserByName(request.to.username);
-        _friendRequestService.Delete(request);
+    public async Task SendFriendRequestCancellation(ServerEvents.SendFriendRequestCancellationEvent evnt) {
+        var eventData = evnt.Payload;
+        var from = _userService.FindUserByName(eventData.from.username);
+        var to = _userService.FindUserByName(eventData.to.username);
         
-        _logger.LogInformation("Sending 'ReceiveFriendRequestCancellation' Event to users: {from}, {to}", request.from, request.to);;
-        await Clients.Users(from.Id.ToString(), to.Id.ToString()).SendAsync("ReceiveFriendRequestCancellation", request);
+        _friendRequestService.Delete(eventData);
+        
+        _logger.LogInformation("Sending a ReceiveFriendRequestCancellationEvent to users: {from}, {to}", eventData.from, eventData.to);;
+        await Clients.Users(from.Id.ToString(), to.Id.ToString())
+            .SendHubEventAsync(new ClientEvents.ReceiveFriendRequestCancellationEvent(eventData));
     }
 }

@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 
+using ServerEvents = HubEvents.FriendRequest.Server;
+using ClientEvents = HubEvents.FriendRequest.Client;
+
 public class FriendRequestClientService {
     
     private readonly NavigationManager _navigation;
@@ -57,33 +60,37 @@ public class FriendRequestClientService {
             })
             .Build();
 
-        _hubConnection.On("ReceiveFriendRequest", (FriendShipRequestDto request) => { 
+        _hubConnection.OnHubEvent<ClientEvents.ReceiveFriendRequestEvent>(evnt => {
+            var request = evnt.Payload;
             _logger.LogInformation("Got a 'ReceiveFriendRequest' Event. Request is: {request}", request.ToString());
             ReceiveFriendRequestEventCallback?.Invoke(request);
         });
         
-        _hubConnection.On("SendFriendRequestAck", (FriendShipRequestDto request) => { 
+        _hubConnection.OnHubEvent<ClientEvents.FriendRequestSentAcknowledgedEvent>(evnt => {
+            var request = evnt.Payload;
             _logger.LogInformation("Got a 'SendFriendRequestAck' Event. Acknowledged request is: {request}", request.ToString());
             SendFriendRequestAckEventCallback?.Invoke(request);
         });
         
-        _hubConnection.On("ReceiveFriendRequestAnswer", (FriendShipRequestAnswerDto answer) => { 
+        _hubConnection.OnHubEvent<ClientEvents.ReceiveFriendRequestAnswerEvent>(evnt => {
+            var answer = evnt.Payload;
             _logger.LogInformation("Got a 'ReceiveFriendRequest' Event. Answer is: {answer}", answer.ToString());
             ReceiveFriendRequestAnswerEventCallback?.Invoke(answer);
         });
         
-        _hubConnection.On("SendFriendRequestAnswerAck", (FriendShipRequestAnswerDto answer) => {
+        _hubConnection.OnHubEvent<ClientEvents.FriendRequestAnswerAcknowledgedEvent>(evnt => {
+            var answer = evnt.Payload;
             _logger.LogInformation("Got a 'SendFriendRequestAnswerAck' Event. Acknowledged answer is: {answer}", answer.ToString());
             SendFriendRequestAnswerAckEventCallback?.Invoke(answer);
         });
 
-        _hubConnection.On("ReceiveFriendRequestCancellation", (FriendShipRequestDto request) => {
-            _logger.LogInformation("Got a 'ReceiveFriendRequestCancellation' Event. Cancellation is: {request}", request.ToString());
-            ReceiveFriendRequestCancellationEventCallback?.Invoke(request);
+        _hubConnection.OnHubEvent<ClientEvents.ReceiveFriendRequestCancellationEvent>(evnt => {
+            var cancellation =  evnt.Payload;
+            _logger.LogInformation("Got a 'ReceiveFriendRequestCancellation' Event. Cancellation is: {request}", cancellation.ToString());
+            ReceiveFriendRequestCancellationEventCallback?.Invoke(cancellation);
         });
 
         await _hubConnection.StartAsync();
-        _logger.LogDebug("Connected to Hub");
     }
 
 
@@ -94,7 +101,7 @@ public class FriendRequestClientService {
         var requestDto = new FriendShipRequestDto(me, target, DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified));
         
         if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
-            await _hubConnection.SendAsync("SendFriendRequest", requestDto);   
+            await _hubConnection.SendHubEventAsync(new ServerEvents.SendFriendRequestEvent(requestDto));   
         }
     }
     
@@ -102,15 +109,15 @@ public class FriendRequestClientService {
         
         var answer = new FriendShipRequestAnswerDto(request, accept);
         
-        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
-            await _hubConnection.SendAsync("SendFriendRequestAnswer", answer);   
+        if (_hubConnection is { State: HubConnectionState.Connected }) {
+            await _hubConnection.SendHubEventAsync(new ServerEvents.SendFriendRequestAnswerEvent(answer));   
         }
         
     }
     
     public async Task CancelFriendRequest(FriendShipRequestDto request) {
-        if (_hubConnection != null && _hubConnection.State == HubConnectionState.Connected) {
-            await _hubConnection.SendAsync("SendFriendRequestCancellation", request);
+        if (_hubConnection is { State: HubConnectionState.Connected }) {
+            await _hubConnection.SendHubEventAsync(new ServerEvents.SendFriendRequestCancellationEvent(request));
         }
     }
     

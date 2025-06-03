@@ -46,4 +46,37 @@ public static class HubEvents
             public record MessageReadEvent(MessageReadDto Payload);
         }
     }
+
+    public static class FriendRequest 
+    {
+        public static class Server 
+        {
+            [HubEvent(EventName = "SendFriendRequest")]
+            public record SendFriendRequestEvent(FriendShipRequestDto Payload);
+            
+            [HubEvent(EventName = "SendFriendRequestAnswer")]
+            public record SendFriendRequestAnswerEvent(FriendShipRequestAnswerDto Payload);
+
+            [HubEvent(EventName = "SendFriendRequestCancellation")]
+            public record SendFriendRequestCancellationEvent(FriendShipRequestDto Payload);
+
+        }  
+        public static class Client 
+        {
+            [HubEvent(EventName = "ReceiveFriendRequestCancellation")]
+            public record ReceiveFriendRequestCancellationEvent(FriendShipRequestDto Payload);
+            
+            [HubEvent(EventName = "ReceiveFriendRequestAnswer")]
+            public record ReceiveFriendRequestAnswerEvent(FriendShipRequestAnswerDto Payload);
+            
+            [HubEvent(EventName = "SendFriendRequestAnswerAck")]
+            public record FriendRequestAnswerAcknowledgedEvent(FriendShipRequestAnswerDto Payload);
+            
+            [HubEvent(EventName = "ReceiveFriendRequest")]
+            public record ReceiveFriendRequestEvent(FriendShipRequestDto Payload);
+            
+            [HubEvent(EventName = "SendFriendRequestAck")]
+            public record FriendRequestSentAcknowledgedEvent(FriendShipRequestDto Payload);
+        }   
+    }
 }

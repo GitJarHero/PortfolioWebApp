@@ -21,6 +21,6 @@ namespace PortfolioWebApp.Shared {
     
     public record MessageDeliveredDto(int SenderUserId, int TargetUserId, int MessageId);
     
-    public record MessageReadDto(int SenderUserId, int TargetUserId, int MessageId);
+    public record MessageReadDto(int SenderUserId, int ReaderUserId, int MessageId);
     
 }

@@ -1,8 +1,14 @@
-using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using PortfolioWebApp.Hubs.Connection;
-using PortfolioWebApp.Models;
 using PortfolioWebApp.Shared;
+
+using MessageAcknowledgedEvent = PortfolioWebApp.Shared.HubEvents.DirectChat.Client.MessageAcknowledgedEvent;
+using MessageReceivedEvent = PortfolioWebApp.Shared.HubEvents.DirectChat.Client.MessageReceivedEvent;
+using ServerMessageDeliveredEvent = PortfolioWebApp.Shared.HubEvents.DirectChat.Server.MessageDeliveredEvent;
+using ClientMessageDeliveredEvent = PortfolioWebApp.Shared.HubEvents.DirectChat.Client.MessageDeliveredEvent;
+using SendMessageEvent = PortfolioWebApp.Shared.HubEvents.DirectChat.Server.SendMessageEvent;
+using ServerMessageReadEvent = PortfolioWebApp.Shared.HubEvents.DirectChat.Server.MessageReadEvent;
+using ClientMessageReadEvent = PortfolioWebApp.Shared.HubEvents.DirectChat.Client.MessageReadEvent;
 
 namespace PortfolioWebApp.Hubs;
 
@@ -28,20 +34,28 @@ public class DirectChatHub : Hub {
         return base.OnConnectedAsync();
     }
 
-    public async Task SendMessage(DirectMessageDto message) {
+    public async Task SendMessage(SendMessageEvent evnt) {
         
-        // TODO
+        // TODO persist the message but 'delivered' and 'read' dates are null
         
-       // await Clients.User(message.To.id.ToString()).SendAsync("ReceiveMessage", message);
-       // await Clients.User(message.From.id.ToString()).SendAsync("MessageSentAcknowledgement", message);
+        await Clients.User(evnt.Payload.To.id.ToString())
+            .SendHubEventAsync(new MessageReceivedEvent(evnt.Payload));
+        await Clients.User(evnt.Payload.From.id.ToString())
+            .SendHubEventAsync(new MessageAcknowledgedEvent(evnt.Payload));
     }
 
-    public async Task SendMessageDelivered(MessageDeliveredDto message) {
-        // TODO
+    public async Task SendMessageDelivered(ServerMessageDeliveredEvent evnt) {
+        // TODO set the 'delivery' date and update the message in the db
+        
+        await Clients.User(evnt.Payload.SenderUserId.ToString())
+            .SendHubEventAsync(new ClientMessageDeliveredEvent(evnt.Payload));
     }
 
-    public async Task SendMessageRead(MessageReadDto message) {
-        // TODO
+    public async Task SendMessageRead(ServerMessageReadEvent evnt) {
+        // TODO set the 'read' date and update the message in the db
+        
+        await Clients.User(evnt.Payload.SenderUserId.ToString())
+            .SendHubEventAsync(new ClientMessageReadEvent(evnt.Payload));
     }
 
 }
