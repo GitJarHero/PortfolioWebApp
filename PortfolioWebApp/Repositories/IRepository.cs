@@ -10,6 +10,11 @@ public interface IRepository<T> where T : class
     /// Retrieves an entity by its primary key.
     /// </summary>
     Task<T?> GetByIdAsync(int id);
+
+    /// <summary>
+    /// Retrieves entities by their primary keys.
+    /// </summary>
+    Task<IEnumerable<T>> GetAllByIdAsync(IEnumerable<int> ids);
     
     /// <summary>
     /// Retrieves all entities of type T.

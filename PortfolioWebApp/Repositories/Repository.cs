@@ -40,6 +40,18 @@ public class Repository<T> : IRepository<T> where T : EntityBase
 
         return await query.FirstOrDefaultAsync(e => e.Id == id);
     }
+    
+    /// <summary>
+    /// Retrieves all entities matching the given collection of primary key IDs, including navigation properties.
+    /// </summary>
+    /// <param name="ids">A collection of primary key values.</param>
+    /// <returns>A collection of entities whose IDs match the provided values.</returns>
+    public async Task<IEnumerable<T>> GetAllByIdAsync(IEnumerable<int> ids)
+    {
+        var query = IncludeNavigationProperties(_dbSet);
+        return await query.Where(e => ids.Contains(e.Id)).ToListAsync();
+    }
+
 
     /// <summary>
     /// Retrieves all entities of the specified type, including navigation properties.
