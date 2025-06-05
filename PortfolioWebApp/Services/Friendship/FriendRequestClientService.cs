@@ -48,7 +48,7 @@ public class FriendRequestClientService {
     }
 
     public async Task StartAsync() {
-        var url = _config["SignalR:Url:NotificationHub"];
+        var url = _config["SignalR:ConnectionUrl:NotificationHub"];
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigation.ToAbsoluteUri(url), options => {
                 // add the auth_cookie defined in program.cs so the hub can identify the user.

@@ -42,7 +42,7 @@ public class GlobalChatService {
 
 
     public async Task Connect() {
-        var url = _config["SignalR:Url:GlobalChatHub"];
+        var url = _config["SignalR:ConnectionUrl:GlobalChatHub"];
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigation.ToAbsoluteUri(url), options => {
                 // add the auth_cookie defined in program.cs so the hub can identify the user.

@@ -1,4 +1,5 @@
 
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -178,11 +179,12 @@ app.MapGet(directChatApiUrl, async (HttpContext http, AppDbContext dbContext, st
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-var globalChatHubUrl = builder.Configuration["SignalR:Url:GlobalChatHub"] 
+var globalChatHubUrl = builder.Configuration["SignalR:MappingUrl:GlobalChatHub"] 
                        ?? throw new Exception("URL for SignalR:Url:GlobalChatHub not configured");
+
 app.MapHub<GlobalChatHub>(globalChatHubUrl);
 
-var notificationHubUrl = builder.Configuration["SignalR:Url:NotificationHub"] 
+var notificationHubUrl = builder.Configuration["SignalR:MappingUrl:NotificationHub"] 
                          ?? throw new Exception("URL for SignalR:Url:NotificationHub not configured");
 app.MapHub<NotificationHub>(notificationHubUrl);
 

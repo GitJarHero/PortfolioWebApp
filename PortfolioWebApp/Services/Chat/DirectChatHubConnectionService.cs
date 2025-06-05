@@ -33,7 +33,7 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
     }
     
     public async Task Connect() {
-        var url = _config["SignalR:Url:DirectChatHub"];
+        var url = _config["SignalR:ConnectionUrl:DirectChatHub"];
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigation.ToAbsoluteUri(url), options => {
                 // add the auth_cookie defined in program.cs so the hub can identify the user.

@@ -4,8 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace PortfolioWebApp.Models.Entities;
 
 [Table("directmessage")]
-public class DirectMessage : EntityBase
+public class DirectMessage
 {
+    
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
+    public int Id { get; set; }
 
     [Required]
     [Column("content", TypeName = "text")]

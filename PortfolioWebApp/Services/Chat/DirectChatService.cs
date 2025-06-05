@@ -73,16 +73,15 @@ public class DirectChatService : IDirectChatService {
         
         foreach (var chat in _chats) {
             
-            if (chat.Key.Equals(chatPreview.ChatPartner)) {
-                
-                // return copies to avoid external modification
-                var userCopy = chat.Key with { };
-                var messagesCopy = chat.Value
-                    .Select(message => message with { }).ToList();
-                
-                return new KeyValuePair<UserDto, List<DirectMessageDto>>(userCopy, messagesCopy);
-            }
+            if (chat.Key != chatPreview.ChatPartner) continue;
             
+            // return copies to avoid external modification
+            var userCopy = chat.Key with { };
+            var messagesCopy = chat.Value
+                .Select(message => message with { }).ToList();
+                
+            return new KeyValuePair<UserDto, List<DirectMessageDto>>(userCopy, messagesCopy);
+
         }
         throw new KeyNotFoundException("Chat not found for the provided ChatPreview.");
     }

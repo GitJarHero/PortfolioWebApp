@@ -5,7 +5,7 @@ using PortfolioWebApp.Models.Entities;
 namespace PortfolioWebApp.Repositories;
 
 public class DirectMessageRepository(AppDbContext context)
-    : Repository<DirectMessage>(context), IDirectMessageRepository {
+    : Repository<DirectMessage, int>(context), IDirectMessageRepository {
     
     public async Task<List<DirectMessage>> GetAllByUserAsync(int userId) {
         return await IncludeNavigationProperties(_dbSet)
