@@ -68,7 +68,8 @@ builder.Services.AddScoped<FriendshipService>();
 builder.Services.AddScoped<FriendRequestService>();
 builder.Services.AddScoped<FriendRequestClientService>();
 builder.Services.AddScoped<GlobalChatService>();
-builder.Services.AddScoped<IDirectChatService, DirectChatService>();
+builder.Services.AddScoped<IDirectChatStorageService, DirectChatStorageService>();
+builder.Services.AddScoped<IDirectChatHubConnectionService, DirectChatHubConnectionService>();
 builder.Services.AddScoped<DirectMessageRepository>();
 
 builder.Services.AddSingleton<CircuitHandler, TrackingCircuitHandler>();

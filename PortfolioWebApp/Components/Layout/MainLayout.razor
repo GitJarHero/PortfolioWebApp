@@ -4,7 +4,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
 
-@inject IDirectChatService DirectChatService
+@inject IDirectChatStorageService DirectChatStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
@@ -52,7 +52,7 @@
 
 
 <!-- Loading Overlay -->
-<div class="loading-overlay @(HttpContextAccessor.HttpContext.User.Identity.IsAuthenticated && !DirectChatService.ChatsLoaded() ? "" : "hidden")">
+<div class="loading-overlay @(HttpContextAccessor.HttpContext.User.Identity.IsAuthenticated && !DirectChatStorageService.ChatsLoaded() ? "" : "hidden")">
     <MudText Typo="Typo.h6" Class="mb-4 text-center">@loadingMessage</MudText>
     <MudProgressLinear Value="@loadingProgress" Color="Color.Primary" Style="width: 50%;" />
 </div>
@@ -109,13 +109,13 @@
             var user = authState.User;
 
             if (user.Identity?.IsAuthenticated == true) {
-                if (!DirectChatService.ChatsLoaded()) {
-                    DirectChatService.OnProgressChanged += (p, message) => {
+                if (!DirectChatStorageService.ChatsLoaded()) {
+                    DirectChatStorageService.OnProgressChanged += (p, message) => {
                         loadingProgress = p;
                         loadingMessage = message;
                         InvokeAsync(StateHasChanged);
                     };
-                    DirectChatService.LoadChatsAsync(user.Identity.Name);
+                    await DirectChatStorageService.LoadChatsAsync(user.Identity.Name);
                 }
             }
         }

@@ -2,7 +2,7 @@ using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services.Chat;
 
-public interface IDirectChatService {
+public interface IDirectChatStorageService {
     
     public enum ChatPreviewFilter {
         All,

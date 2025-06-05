@@ -1,16 +1,12 @@
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
-using PortfolioWebApp.Components.Pages.Chats;
-using PortfolioWebApp.Models;
-using PortfolioWebApp.Models.Entities;
 using PortfolioWebApp.Repositories;
 using PortfolioWebApp.Shared;
 
 namespace PortfolioWebApp.Services.Chat;
 
-public class DirectChatService : IDirectChatService {
+public class DirectChatStorageService : IDirectChatStorageService {
 
-    private readonly ILogger<DirectChatService> _logger;
+    private readonly ILogger<DirectChatStorageService> _logger;
     private readonly AuthenticationStateProvider _authenticationStateProvider;
     private readonly DirectMessageRepository _directMessageRepository;
     private readonly UserService _userService;
@@ -21,8 +17,8 @@ public class DirectChatService : IDirectChatService {
     private Dictionary<UserDto, List<DirectMessageDto>> _chats = new();
     
     
-    public DirectChatService(
-        ILogger<DirectChatService> logger, 
+    public DirectChatStorageService(
+        ILogger<DirectChatStorageService> logger, 
         AuthenticationStateProvider authenticationStateProvider,
         DirectMessageRepository directMessageRepository,
         UserService userService
@@ -35,7 +31,7 @@ public class DirectChatService : IDirectChatService {
     }
 
     
-    public List<ChatPreview> GetChatPreviews(IDirectChatService.ChatPreviewFilter filter) {
+    public List<ChatPreview> GetChatPreviews(IDirectChatStorageService.ChatPreviewFilter filter) {
         
         var previews = new List<ChatPreview>();
 
@@ -50,18 +46,18 @@ public class DirectChatService : IDirectChatService {
             
             switch (filter) {
                 
-                case IDirectChatService.ChatPreviewFilter.All:
+                case IDirectChatStorageService.ChatPreviewFilter.All:
                     previews.Add(new ChatPreview(chatPartner, latestMessage, unreadMessagesCount));
                     break;
 
-                case IDirectChatService.ChatPreviewFilter.Unread:
+                case IDirectChatStorageService.ChatPreviewFilter.Unread:
                     if (unreadMessagesCount > 0) {
                         previews.Add(new ChatPreview(chatPartner, latestMessage, unreadMessagesCount));
                     }
                     break;
                 
                 default:
-                    _logger.LogError($"Unsupported Value for" + nameof(IDirectChatService.ChatPreviewFilter) + ": {filter}", filter);
+                    _logger.LogError($"Unsupported Value for" + nameof(IDirectChatStorageService.ChatPreviewFilter) + ": {filter}", filter);
                     break;
                 
             }
@@ -85,7 +81,7 @@ public class DirectChatService : IDirectChatService {
         }
         throw new KeyNotFoundException("Chat not found for the provided ChatPreview.");
     }
-    
+
     public async Task LoadChatsAsync(string myUsername) {
         
         OnProgressChanged?.Invoke(_progress, "Loading chats...");

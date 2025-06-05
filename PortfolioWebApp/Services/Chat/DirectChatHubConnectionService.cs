@@ -30,6 +30,8 @@ public class DirectChatHubConnectionService : IDirectChatHubConnectionService {
         _httpContextAccessor = httpContextAccessor;
         _navigation = navigation;
         _logger = logger;
+        
+        _logger.LogInformation("DirectChatHubConnectionService initialized");
     }
     
     public async Task Connect() {

@@ -3,7 +3,8 @@
 @using PortfolioWebApp.Services.Chat
 @using PortfolioWebApp.Shared
 
-@inject IDirectChatService ChatService
+@inject IDirectChatStorageService ChatStorageService
+
 
 <div style="display: flex; height: calc(100vh - 48px); overflow: hidden;">
     <!-- Left Area (Friends), fixed size -->
@@ -30,33 +31,33 @@
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.All ? Color.Primary : Color.Default)"
-                             Style="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.All ? "border: 1px solid var(--mud-palette-primary);" : null)"
-                             OnClick="@(() => ChangeFilter(IDirectChatService.ChatPreviewFilter.All))">
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.All ? Color.Primary : Color.Default)"
+                             Style="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.All ? "border: 1px solid var(--mud-palette-primary);" : null)"
+                             OnClick="@(() => ChangeFilter(IDirectChatStorageService.ChatPreviewFilter.All))">
                         All
                     </MudChip>
 
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.Unread ? Color.Primary : Color.Default)"
-                             OnClick="@(() => ChangeFilter(IDirectChatService.ChatPreviewFilter.Unread))">
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Unread ? Color.Primary : Color.Default)"
+                             OnClick="@(() => ChangeFilter(IDirectChatStorageService.ChatPreviewFilter.Unread))">
                         Unread
                     </MudChip>
 
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.Favorites ? Color.Primary : Color.Default)"
-                             OnClick="@(() => _selectedPreviewFilter = IDirectChatService.ChatPreviewFilter.Favorites)">
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Favorites ? Color.Primary : Color.Default)"
+                             OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Favorites)">
                         Favorites
                     </MudChip>
 
                     <MudChip T="string"
                              Class="m-0"
                              Variant="Variant.Outlined"
-                             Color="@(_selectedPreviewFilter == IDirectChatService.ChatPreviewFilter.Groups ? Color.Primary : Color.Default)"
-                             OnClick="@(() => _selectedPreviewFilter = IDirectChatService.ChatPreviewFilter.Groups)">
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Groups ? Color.Primary : Color.Default)"
+                             OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Groups)">
                         Groups
                     </MudChip>
                 </MudStack>
@@ -120,24 +121,25 @@
 @code {
     private bool _initialized = false;
     private string _query = string.Empty;
-    private IDirectChatService.ChatPreviewFilter _selectedPreviewFilter = IDirectChatService.ChatPreviewFilter.All;
+    private IDirectChatStorageService.ChatPreviewFilter _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.All;
     private List<ChatPreview> _chatPreviews = new();
     public KeyValuePair<UserDto, List<DirectMessageDto>>? ActiveChat { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        _chatPreviews = ChatService.GetChatPreviews(_selectedPreviewFilter);
+        _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
         _initialized = true;
     }
-
-    private void ChangeFilter(IDirectChatService.ChatPreviewFilter newPreviewFilter) {
+    
+    private void ChangeFilter(IDirectChatStorageService.ChatPreviewFilter newPreviewFilter) {
         _selectedPreviewFilter = newPreviewFilter;
-        _chatPreviews = ChatService.GetChatPreviews(newPreviewFilter);
+        _chatPreviews = ChatStorageService.GetChatPreviews(newPreviewFilter);
         StateHasChanged(); // re-render the Chats list
     }
 
     private void ChangeActiveChat(ChatPreview chatPreview) {
-        ActiveChat = ChatService.GetFullChatForChatPreview(chatPreview);
+        ActiveChat = ChatStorageService.GetFullChatForChatPreview(chatPreview);
         StateHasChanged();
     }
+
     
 }
