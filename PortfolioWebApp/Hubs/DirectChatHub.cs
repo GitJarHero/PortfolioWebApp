@@ -86,7 +86,14 @@ public class DirectChatHub : Hub
             Read = null
         };
 
-        await _directMessageRepository.SaveAsync(messageEntity);
+        var savedMessageEntity = await _directMessageRepository.SaveAsync(messageEntity);
+
+        // add missing user data to the event payload
+        evnt = new SendMessageEvent(Payload: evnt.Payload with {
+            From = new UserDto(fromUser.UserName, fromUser.Id, fromUser.ProfileColor),
+            MessageId = savedMessageEntity.Id
+        });
+        
 
         // Notify the recipient that a message was received
         await Clients.User(evnt.Payload.To.id.ToString())

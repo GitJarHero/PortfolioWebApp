@@ -189,4 +189,8 @@ var notificationHubUrl = builder.Configuration["SignalR:MappingUrl:NotificationH
                          ?? throw new Exception("URL for SignalR:Url:NotificationHub not configured");
 app.MapHub<NotificationHub>(notificationHubUrl);
 
+var directChatHubUrl = builder.Configuration["SignalR:MappingUrl:DirectChatHub"]
+    ?? throw new Exception("URL for SignalR:Url:DirectChatHub not configured");
+app.MapHub<DirectChatHub>(directChatHubUrl);
+
 app.Run();

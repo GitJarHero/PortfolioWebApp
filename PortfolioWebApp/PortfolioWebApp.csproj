@@ -18,6 +18,8 @@
     <ItemGroup>
       <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css" />
       <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css.map" />
+      <_ContentIncludedByDefault Remove="wwwroot\svg\double-check.svg" />
+      <_ContentIncludedByDefault Remove="wwwroot\svg\single-check.svg" />
     </ItemGroup>
 
 </Project>

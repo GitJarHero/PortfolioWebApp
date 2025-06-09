@@ -2,9 +2,15 @@
 
 @using PortfolioWebApp.Services.Chat
 @using PortfolioWebApp.Shared
+@using Serilog
 
+@inject ILogger<Chats> Logger
 @inject IDirectChatStorageService ChatStorageService
+@inject IDirectChatHubConnectionService ChatHubConnectionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
 
+@implements IAsyncDisposable
 
 <div style="display: flex; height: calc(100vh - 48px); overflow: hidden;">
     <!-- Left Area (Friends), fixed size -->
@@ -111,7 +117,7 @@
     <!-- Right Area (Active Chat) -->
     <div style="flex: 1;">
         @if (ActiveChat is not null) {
-            <ChatWindow ChatData="@ActiveChat.Value" /> <!-- the reference value, not the value of the pair -->
+            <ChatWindow @ref="chatWindow" ChatData="@ActiveChat.Value" OnMessageSent="SendMessage" /> <!-- the reference value, not the value of the pair -->
         } else {
             <PlaceholderChatWindow/>        
         }
@@ -119,16 +125,118 @@
 </div>
 
 @code {
+    private ChatWindow chatWindow;
     private bool _initialized = false;
     private string _query = string.Empty;
     private IDirectChatStorageService.ChatPreviewFilter _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.All;
+   
     private List<ChatPreview> _chatPreviews = new();
     public KeyValuePair<UserDto, List<DirectMessageDto>>? ActiveChat { get; set; }
 
     protected override async Task OnInitializedAsync() {
         _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
         _initialized = true;
+        
+        Unhook();
+        Hook();
     }
+    
+    // Deregister all because when the users leaves the chat page,
+    // the DirectChatConnectionService will still update the DirectChatStorageService.
+    // THUS: when the user re-enters the Chats page,
+    // OnInitializedAsync will be called again and reload and rerender everything from the DirectChatStorageService. 
+    public ValueTask DisposeAsync() {
+        Unhook();
+        return ValueTask.CompletedTask;
+    }
+
+    private void Hook() {
+        // when a message was received and added to the DirectChatStorageService
+        ChatHubConnectionService.ReceiveMessage += HandleMessageReceived;
+        // when messages was delivered and updated in the DirectChatStorageService
+        ChatHubConnectionService.MessageDelivered += HandleMessageDelivered;
+        // when messages was delivered and updated in the DirectChatStorageService
+        ChatHubConnectionService.MessageRead += HandleMessageRead;
+        // when a outgoing message got sent successfully
+        ChatHubConnectionService.MessageSentAcknowledgement += HandleMessageSentAcknowledgement;
+    }
+
+    private void Unhook() {
+        ChatHubConnectionService.ReceiveMessage -= HandleMessageReceived;
+        ChatHubConnectionService.MessageDelivered -= HandleMessageDelivered;
+        ChatHubConnectionService.MessageRead -= HandleMessageRead;
+        ChatHubConnectionService.MessageSentAcknowledgement -= HandleMessageSentAcknowledgement;
+    }
+
+    private void HandleMessageReceived(DirectMessageDto message)
+    {
+        Task.Run(async () =>
+        {
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+
+            var selectedChatPreview = _chatPreviews
+                .Where(p => p.ChatPartner.id == ActiveChat.Value.Key.id)
+                .FirstOrDefault();
+
+            ActiveChat = ChatStorageService.GetFullChatForChatPreview(selectedChatPreview);
+
+            await InvokeAsync(StateHasChanged);
+            if (message.From.id == ActiveChat.Value.Key.id) {
+                await chatWindow.ScrollToBottom();
+            }
+        });
+    }
+
+    private void HandleMessageDelivered(MessageDeliveredDto messageDelivered)
+    {
+        Task.Run(async () =>
+        {
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+
+            var selectedChatPreview = _chatPreviews
+                .Where(p => p.ChatPartner.id == ActiveChat.Value.Key.id)
+                .FirstOrDefault();
+
+            ActiveChat = ChatStorageService.GetFullChatForChatPreview(selectedChatPreview);
+
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void HandleMessageRead(MessageReadDto messageRead)
+    {
+        Task.Run(async () =>
+        {
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+
+            var selectedChatPreview = _chatPreviews
+                .Where(p => p.ChatPartner.id == ActiveChat.Value.Key.id)
+                .FirstOrDefault();
+
+            ActiveChat = ChatStorageService.GetFullChatForChatPreview(selectedChatPreview);
+
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void HandleMessageSentAcknowledgement(DirectMessageDto messageSent)
+    {
+        Task.Run(async () =>
+        {
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+
+            var selectedChatPreview = _chatPreviews
+                .Where(p => p.ChatPartner.id == ActiveChat.Value.Key.id)
+                .FirstOrDefault();
+
+            ActiveChat = ChatStorageService.GetFullChatForChatPreview(selectedChatPreview);
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+            await chatWindow.ScrollToBottom();
+        });
+    }
+
     
     private void ChangeFilter(IDirectChatStorageService.ChatPreviewFilter newPreviewFilter) {
         _selectedPreviewFilter = newPreviewFilter;
@@ -136,10 +244,33 @@
         StateHasChanged(); // re-render the Chats list
     }
 
-    private void ChangeActiveChat(ChatPreview chatPreview) {
+    private async Task ChangeActiveChat(ChatPreview chatPreview) {
         ActiveChat = ChatStorageService.GetFullChatForChatPreview(chatPreview);
-        StateHasChanged();
+        _shouldScrollToBottom = true;
+        await InvokeAsync(StateHasChanged);
     }
 
+    private void SendMessage(string message) {
+        var me = AuthenticationStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        var target = ActiveChat.Value.Key;
+
+        var fromDto = new UserDto(me, 0, "");
+        var toDto = new UserDto(target.username, target.id, target.profile_color);
+        
+        var messageDto = new DirectMessageDto(0, fromDto, toDto, message, 
+            DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified), null, null);
+        ChatHubConnectionService.Send(messageDto);
+    }
+    
+    private bool _shouldScrollToBottom;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldScrollToBottom && chatWindow is not null)
+        {
+            _shouldScrollToBottom = false;
+            await chatWindow.ScrollToBottom();
+        }
+    }
     
 }

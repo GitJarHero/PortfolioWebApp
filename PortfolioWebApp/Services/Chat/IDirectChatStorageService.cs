@@ -12,13 +12,27 @@ public interface IDirectChatStorageService {
     }
     
     public Task LoadChatsAsync(string user);
+    
+    // To be used after LoadChatsAsync() is done. Marks Messages as delivered IF: the message has no delivery date && message.toUser = current user
+    // returns: for each user that sent new messages to us: a MessageDeliveredDto with all the new messages from that user
+    public Task<List<MessageDeliveredDto>> MarkNewMessagesAsDeliveredAsync();
 
     public bool ChatsLoaded();
+
+    public void InvalidateStorage();
     
     public event Action<int,string>? OnProgressChanged;
 
     public List<ChatPreview> GetChatPreviews(ChatPreviewFilter filter);
 
     public KeyValuePair<UserDto, List<DirectMessageDto>> GetFullChatForChatPreview(ChatPreview chatPreview);
+    
+    public void HandleReceiveMessage(DirectMessageDto message);
+    
+    public void HandleMessageSentAcknowledgement(DirectMessageDto message);
+    
+    public void HandleMessageDelivered(MessageDeliveredDto message);
+    
+    public void HandleMessageRead(MessageReadDto message);
     
 }

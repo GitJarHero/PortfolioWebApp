@@ -57,7 +57,7 @@ public class Repository<T, TId> : IRepository<T, TId> where T : class
         var containsCall = Expression.Call(containsMethod, idsConst, property);
 
         var lambda = Expression.Lambda<Func<T, bool>>(containsCall, parameter);
-        return await _dbSet.Where(lambda).ToListAsync();
+        return await IncludeNavigationProperties(_dbSet).Where(lambda).ToListAsync();
     }
 
     /// <inheritdoc />

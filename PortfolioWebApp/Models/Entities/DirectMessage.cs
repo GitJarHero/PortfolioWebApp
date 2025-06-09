@@ -25,13 +25,13 @@ public class DirectMessage
     public User ToUser { get; set; }
     
     [Required]
-    [Column("created")]
+    [Column("created", TypeName = "timestamp without time zone")]
     public DateTime Created { get; set; }
     
-    [Column("delivered")]
+    [Column("delivered", TypeName = "timestamp without time zone")]
     public DateTime? Delivered { get; set; }
 
-    [Column("read")]
+    [Column("read", TypeName = "timestamp without time zone")]
     public DateTime? Read { get; set; }
     
 }

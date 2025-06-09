@@ -1,6 +1,8 @@
 ﻿@using PortfolioWebApp.Shared
 @using MudBlazor
 
+@inject IJSRuntime JS
+
 <MudPaper Class="d-flex flex-column h-100" Elevation="1">
 
     <!-- Header -->
@@ -12,13 +14,11 @@
     </MudPaper>
 
     <!-- Nachrichtenbereich -->
-    <MudPaper Class="flex-grow-1 overflow-auto px-4 py-2">
-        @if (ChatData.Value?.Any() == true)
-        {
+    <MudPaper Class="flex-grow-1 overflow-auto px-4 py-2 scrollable">
+        @if (ChatData.Value?.Any() == true) {
             var groupedMessages = GroupByConsecutiveSender(ChatData.Value.OrderBy(m => m.Created));
 
-            for (int i = 0; i < groupedMessages.Count; i++)
-            {
+            for (int i = 0; i < groupedMessages.Count; i++) {
                 var group = groupedMessages[i];
                 var lastMessage = group.Last();
                 var isCurrentUser = lastMessage.To.username == ChatData.Key.username;
@@ -26,17 +26,38 @@
 
                 <MudChat ChatPosition="@position">
                     @foreach (var message in group) {
-                        <MudChatBubble>
-                            @message.Content
+                        <MudChatBubble Class="whatsapp-bubble">
+                            <div class="wa-wrapper">
+                                <div class="wa-text-with-meta">
+                                    <span class="wa-text">@message.Content</span>
+                                    <span class="wa-meta">
+                                        <span class="wa-time">@message.Created.ToString("HH:mm")</span>
+                                        @if (message.From.id != ChatData.Key.id)
+                                        {
+                                            @if (message.Read is not null)
+                                            {
+                                                <MessageStatusIcon State="MessageStatusIcon.MessageStatus.Read" />
+                                            }
+                                            else if (message.Delivered is not null)
+                                            {
+                                                <MessageStatusIcon State="MessageStatusIcon.MessageStatus.Delivered" />
+                                            }
+                                            else
+                                            {
+                                                <MessageStatusIcon State="MessageStatusIcon.MessageStatus.Sent" />
+                                            }
+                                        }
+                                    </span>
+                                </div>
+                            </div>
                         </MudChatBubble>
                     }
                     <MudChatFooter Class="mt-1">@lastMessage.Created.ToString()</MudChatFooter>
                 </MudChat>
             }
         }
-        else
-        {
-            <MudChatBubble Text="Noch keine Nachrichten" Side="ChatSide.Center" />
+        else {
+            <MudChatBubble Text="Noch keine Nachrichten" Side="ChatSide.Center"/>
         }
     </MudPaper>
 
@@ -57,15 +78,23 @@
 
 </MudPaper>
 
+<script src="js/Home/globalchat.js"></script>
+
 @code {
+    private MudPaper _chatArea;
+    
     [Parameter, EditorRequired]
     public KeyValuePair<UserDto, List<DirectMessageDto>> ChatData { get; set; }
 
     private string _newMessage = string.Empty;
 
-    private void SendMessage() {
-        // Logik zum Nachrichtensenden
+    [Parameter]
+    public EventCallback<string> OnMessageSent { get; set; }
+    
+    private async Task SendMessage() {
+        await OnMessageSent.InvokeAsync(_newMessage);
         _newMessage = string.Empty;
+        await InvokeAsync(StateHasChanged);
     }
     
     private List<List<DirectMessageDto>> GroupByConsecutiveSender(IEnumerable<DirectMessageDto> messages) {
@@ -85,4 +114,57 @@
 
         return result;
     }
+
+    public async Task ScrollToBottom() {
+        Console.WriteLine("Scrolling to bottom. Element is: " + _chatArea);
+        await JS.InvokeVoidAsync("scrollToBottom");
+    }
 }
+
+<style>
+.whatsapp-bubble {
+    padding: 0 !important;
+    max-width: 65ch;
+    border-radius: 8px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.wa-wrapper {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+}
+.wa-text-with-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+.wa-text {
+    flex: 1;
+    text-align: left;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.wa-meta {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0.75;
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+    top: 0.3rem;
+}
+
+
+.wa-time {
+    margin-right: 0.2rem;
+}
+</style>
+
+
+

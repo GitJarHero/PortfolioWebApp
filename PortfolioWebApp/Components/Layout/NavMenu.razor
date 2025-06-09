@@ -17,16 +17,22 @@
                 <MudNavLink ForceLoad="false" Href="/Chats" Icon="@Icons.Material.Filled.Chat">
                     Chats
                 </MudNavLink>
+              
+               
                 <MudNavLink ForceLoad="false" Href="/Friends" Icon="@Icons.Material.Filled.People">
                     Friends
                 </MudNavLink>
+             
+  
+                
 
                 <MudSpacer/>
                 
                 <MudNavLink ForceLoad="false" Href="/Account/Profile" Icon="@Icons.Material.Filled.AccountCircle">
                     Profile
                 </MudNavLink>
-                <MudNavLink ForceLoad="false" IconColor="Color.Error" Href="/Account/Logout" Icon="@Icons.Material.Filled.ExitToApp">
+                <MudNavLink ForceLoad="false" IconColor="Color.Error" Href="/Account/Logout" 
+                            Icon="@Icons.Material.Filled.ExitToApp">
                     Logout
                 </MudNavLink>
 
@@ -51,6 +57,7 @@
             </NotAuthorized>
         </AuthorizeView>
     </MudNavMenu>
+    
 </MudDrawer>
 
 @code {

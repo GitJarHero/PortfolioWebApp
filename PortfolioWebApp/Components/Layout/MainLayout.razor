@@ -1,11 +1,14 @@
-﻿@using PortfolioWebApp.Models.Entities
-@using PortfolioWebApp.Services.Chat
+﻿@using PortfolioWebApp.Services.Chat
+@using PortfolioWebApp.Shared
 @inherits LayoutComponentBase
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
 
-@inject IDirectChatStorageService DirectChatStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDirectChatStorageService DirectChatStorageService
+@inject IDirectChatHubConnectionService DirectChatConnectionService
+@inject ILogger<MainLayout> Logger
+
 
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
 <MudPopoverProvider />
@@ -116,6 +119,17 @@
                         InvokeAsync(StateHasChanged);
                     };
                     await DirectChatStorageService.LoadChatsAsync(user.Identity.Name);
+                }
+
+                if (!DirectChatConnectionService.IsConnected()) {
+                    Logger.LogInformation("Calling DirectChatConnectionService.Connect()");
+                    await DirectChatConnectionService.Connect();
+                    
+                    var newMessages = await DirectChatStorageService.MarkNewMessagesAsDeliveredAsync();
+                    foreach (var messageDeliveredDto in newMessages) {
+                        // inform the hub that we received the messages
+                        await DirectChatConnectionService.SendMessageDelivered(messageDeliveredDto);
+                    }
                 }
             }
         }

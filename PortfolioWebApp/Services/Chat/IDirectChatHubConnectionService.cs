@@ -19,6 +19,8 @@ public interface IDirectChatHubConnectionService {
     // Starts a connection to the DirectChatHub
     Task Connect();
     
+    bool IsConnected();
+    
     // Closes the connection to the DirectChatHub 
     Task Disconnect();
     
