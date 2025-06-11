@@ -17,7 +17,7 @@ namespace PortfolioWebApp.Shared {
         DateTime? Read,
         DateTime? Delivered);
 
-    public record ChatPreview(UserDto ChatPartner, DirectMessageDto? LatestMessage, int NewMessagesCount);
+    public record ChatPreviewDto(UserDto ChatPartner, DirectMessageDto? LatestMessage, int NewMessagesCount);
     
     public record MessageDeliveredDto(List<int> DeliveredMessages, DateTime TimeStamp);
     

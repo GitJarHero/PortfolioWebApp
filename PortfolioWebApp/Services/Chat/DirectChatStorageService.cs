@@ -33,28 +33,28 @@ public class DirectChatStorageService : IDirectChatStorageService {
     }
 
     
-    public List<ChatPreview> GetChatPreviews(IDirectChatStorageService.ChatPreviewFilter filter) {
+    public List<ChatPreviewDto> GetChatPreviews(IDirectChatStorageService.ChatPreviewFilter filter) {
         
-        var previews = new List<ChatPreview>();
+        var authState = _authenticationStateProvider.GetAuthenticationStateAsync();
+        var me = authState.Result.User.Identity?.Name;
+        var previews = new List<ChatPreviewDto>();
 
         foreach (var entry in _chats) {
             
             var chatPartner = entry.Key;
             var messages = entry.Value;
             var latestMessage = messages.LastOrDefault();
-            var authState = _authenticationStateProvider.GetAuthenticationStateAsync();
-            var me = authState.Result.User.Identity?.Name;
             var unreadMessagesCount = messages.Count(m => m.To.username == me && m.Read == null);
             
             switch (filter) {
                 
                 case IDirectChatStorageService.ChatPreviewFilter.All:
-                    previews.Add(new ChatPreview(chatPartner, latestMessage, unreadMessagesCount));
+                    previews.Add(new ChatPreviewDto(chatPartner, latestMessage, unreadMessagesCount));
                     break;
 
                 case IDirectChatStorageService.ChatPreviewFilter.Unread:
                     if (unreadMessagesCount > 0) {
-                        previews.Add(new ChatPreview(chatPartner, latestMessage, unreadMessagesCount));
+                        previews.Add(new ChatPreviewDto(chatPartner, latestMessage, unreadMessagesCount));
                     }
                     break;
                 
@@ -67,10 +67,10 @@ public class DirectChatStorageService : IDirectChatStorageService {
         return previews;
     }
 
-    public KeyValuePair<UserDto, List<DirectMessageDto>> GetFullChatForChatPreview(ChatPreview chatPreview) 
+    public KeyValuePair<UserDto, List<DirectMessageDto>> GetFullChatForChatPreview(ChatPreviewDto chatPreviewDto) 
     {
         foreach (var chat in _chats) {
-            if (chat.Key != chatPreview.ChatPartner) continue;
+            if (chat.Key != chatPreviewDto.ChatPartner) continue;
             
             return new KeyValuePair<UserDto, List<DirectMessageDto>>(chat.Key, chat.Value);
         }
@@ -176,6 +176,24 @@ public class DirectChatStorageService : IDirectChatStorageService {
             .ToList();
 
         return result;
+    }
+
+    public List<int> MarkUnreadMessagesAsRead(int fromUserId, DateTime readDate) {
+        List<int> messagesMarked = [];
+
+        var messages = _chats.First(userChat => userChat.Key.id == fromUserId).Value;
+
+        for (int i = 0; i < messages.Count; i++) {
+            var message = messages[i];
+            
+            if (message.From.id == fromUserId && message.Read == null) {
+                var updatedMessage = message with { Read = readDate };
+                messages[i] = updatedMessage;
+                messagesMarked.Add(updatedMessage.MessageId);
+            }
+        }
+
+        return messagesMarked;
     }
 
 

@@ -16,8 +16,13 @@
     <!-- Nachrichtenbereich -->
     <MudPaper Class="flex-grow-1 overflow-auto px-4 py-2 scrollable">
         @if (ChatData.Value?.Any() == true) {
-            var groupedMessages = GroupByConsecutiveSender(ChatData.Value.OrderBy(m => m.Created));
-
+            var groupedMessages = GroupByConsecutiveSender(
+                ChatData.Value
+                    .OrderBy(m => m.To.username == ChatData.Key.username // message was sent by me
+                        ? m.Created
+                        : m.Delivered ?? m.Created)
+            );
+            
             for (int i = 0; i < groupedMessages.Count; i++) {
                 var group = groupedMessages[i];
                 var lastMessage = group.Last();
@@ -116,7 +121,6 @@
     }
 
     public async Task ScrollToBottom() {
-        Console.WriteLine("Scrolling to bottom. Element is: " + _chatArea);
         await JS.InvokeVoidAsync("scrollToBottom");
     }
 }

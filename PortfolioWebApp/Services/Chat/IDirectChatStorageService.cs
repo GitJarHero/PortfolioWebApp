@@ -17,15 +17,18 @@ public interface IDirectChatStorageService {
     // returns: for each user that sent new messages to us: a MessageDeliveredDto with all the new messages from that user
     public Task<List<MessageDeliveredDto>> MarkNewMessagesAsDeliveredAsync();
 
+    // To be used when opening a chat window with a chat partner. Marks all messages from that chatpartner as read
+    public List<int> MarkUnreadMessagesAsRead(int fromUserId, DateTime readDate);
+    
     public bool ChatsLoaded();
 
     public void InvalidateStorage();
     
     public event Action<int,string>? OnProgressChanged;
 
-    public List<ChatPreview> GetChatPreviews(ChatPreviewFilter filter);
+    public List<ChatPreviewDto> GetChatPreviews(ChatPreviewFilter filter);
 
-    public KeyValuePair<UserDto, List<DirectMessageDto>> GetFullChatForChatPreview(ChatPreview chatPreview);
+    public KeyValuePair<UserDto, List<DirectMessageDto>> GetFullChatForChatPreview(ChatPreviewDto chatPreviewDto);
     
     public void HandleReceiveMessage(DirectMessageDto message);
     
