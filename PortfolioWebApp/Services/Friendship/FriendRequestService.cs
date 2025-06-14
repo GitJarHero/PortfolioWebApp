@@ -15,14 +15,13 @@ public class FriendRequestService {
         _logger = logger;
     }
 
-    public List<FriendShipRequestDto> GetAllFriendRequests(string username) {
-        
-        var requests = _appDbContext.FriendRequests
-            .Where(fr => fr.From.UserName.ToLower() == username.ToLower() 
+    public async Task<List<FriendShipRequestDto>> GetAllFriendRequestsAsync(string username) {
+        var requests = await _appDbContext.FriendRequests
+            .Where(fr => fr.From.UserName.ToLower() == username.ToLower()
                          || fr.To.UserName.ToLower() == username.ToLower())
             .Include(req => req.From)
             .Include(req => req.To)
-            .ToList();
+            .ToListAsync();
 
         return requests.Select(req => new FriendShipRequestDto(
             new UserDto(req.From.UserName, req.From.Id, req.From.ProfileColor),
@@ -30,6 +29,7 @@ public class FriendRequestService {
             req.Created
         )).ToList();
     }
+
 
     public List<FriendShipRequestDto> FilterIncomingRequests(List<FriendShipRequestDto> allRequests, string userName) {
         return allRequests
