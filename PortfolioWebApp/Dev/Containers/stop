@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Colors for output
+red() { echo -e "\033[31m$1\033[0m" >&2; }
+green() { echo -e "\033[32m$1\033[0m"; }
+blue() { echo -e "\033[34m$1\033[0m"; }
+
+# Show help
+show_help() {
+    echo "Usage: $0 [db|webapp|all]"
+    echo "  db      - Stop only the database"
+    echo "  webapp  - Stop only the webapp"
+    echo "  all     - Stop everything (default)"
+    exit 1
+}
+
+# Stop database
+stop_db() {
+    green "🛑 Stopping database..."
+    if ! docker-compose stop db; then
+        red "❌ Failed to stop database"
+        return 1
+    fi
+    green "✅ Database stopped successfully!"
+    return 0
+}
+
+# Stop webapp
+stop_webapp() {
+    green "🛑 Stopping webapp..."
+    if ! docker-compose stop web; then
+        red "❌ Failed to stop webapp"
+        return 1
+    fi
+    green "✅ Webapp stopped successfully!"
+    return 0
+}
+
+# Main script
+main() {
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    cd "$PROJECT_ROOT" || { red "❌ Project root not found"; exit 1; }
+
+    local target="${1:-all}"  # Default: 'all'
+
+    case "$target" in
+        db)
+            stop_db || exit 1
+            ;;
+        webapp)
+            stop_webapp || exit 1
+            ;;
+        all)
+            blue "=== Stopping all services ==="
+            if ! stop_db || ! stop_webapp; then
+                red "❌ Failed to stop all services"
+                exit 1
+            fi
+            green "\n🛑 All services stopped successfully!"
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            red "❌ Invalid argument: $target"
+            show_help
+            ;;
+    esac
+}
+
+main "$@"

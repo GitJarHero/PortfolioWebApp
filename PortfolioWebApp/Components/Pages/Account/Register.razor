@@ -1,0 +1,74 @@
+@page "/Account/Register"
+@using MudBlazor.StaticInput
+@attribute [AllowAnonymous]
+
+<div class="d-flex align-center justify-center" style="min-height: 100%;">
+    <div style="width: auto; min-width: 360px; max-width: 600px;">
+        <MudCard Elevation="10" Class="pa-6" Style="border-radius: 12px;">
+            <MudCardContent>
+                <div class="text-center mb-6">
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-2" Style="white-space: nowrap;">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-2" Size="Size.Large"/>
+                        Register Account
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Create your account</MudText>
+                </div>
+
+                <EditForm Model="@RegisterData" OnValidSubmit="HandleRegister" method="post" FormName="RegisterData">
+                    <MudStaticTextField @bind-Value="@RegisterData.Username"
+                                        Label="Username"
+                                        For="@(() => RegisterData.Username)"
+                                        AdornmentIcon="@Icons.Material.Filled.Person"
+                                        Class="mt-4"
+                                        FullWidth
+                                        Required="true"
+                                        RequiredError="Username is required"/>
+
+                    <MudStaticTextField @bind-Value="@RegisterData.Password"
+                                        Label="Password"
+                                        For="@(() => RegisterData.Password)"
+                                        InputType="InputType.Password"
+                                        AdornmentIcon="@Icons.Material.Filled.Lock"
+                                        Class="mt-4"
+                                        FullWidth
+                                        Required="true"
+                                        RequiredError="Password is required"/>
+
+                    <MudStaticTextField @bind-Value="@RegisterData.ConfirmPassword"
+                                        Label="Confirm Password"
+                                        For="@(() => RegisterData.ConfirmPassword)"
+                                        InputType="InputType.Password"
+                                        AdornmentIcon="@Icons.Material.Filled.Lock"
+                                        Class="mt-4 mb-2"
+                                        FullWidth
+                                        Required="true"
+                                        RequiredError="Confirmation is required"/>
+
+                    <MudStaticButton Type="submit"
+                                     Variant="Variant.Filled"
+                                     Color="Color.Primary"
+                                     FullWidth
+                                     Size="Size.Large"
+                                     Class="mt-2 mb-3"
+                                     EndIcon="@Icons.Material.Filled.PersonAdd">
+                        Register
+                    </MudStaticButton>
+
+                    @if (ShowRegisterError)
+                    {
+                        <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error" Class="mb-4">
+                            @RegisterErrorMessage
+                        </MudAlert>
+                    }
+
+                    <div class="text-center mt-4">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mr-2">Already have an account?</MudText>
+                        <MudLink Href="/Account/Login" Color="Color.Primary" Underline="Underline.Hover">
+                            Log in here
+                        </MudLink>
+                    </div>
+                </EditForm>
+            </MudCardContent>
+        </MudCard>
+    </div>
+</div>

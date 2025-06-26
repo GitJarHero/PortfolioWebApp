@@ -1,0 +1,13 @@
+﻿@using PortfolioWebApp.Components.Layout
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <!-- <LayoutView Layout="typeof(MainLayout)"> -->
+            <PortfolioWebApp.Components.Pages.Error.NotFound />
+        <!-- </LayoutView> -->
+    </NotFound>
+</Router>

@@ -1,0 +1,73 @@
+@page "/Account/Login"
+@using MudBlazor.StaticInput
+@attribute [AllowAnonymous]
+
+<div class="d-flex align-center justify-center" style="min-height: 100%;">
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" sm="10" md="8" lg="6" xl="4">
+            <MudCard Elevation="10" Class="pa-6" Style="border-radius: 12px;">
+                <MudCardContent>
+                    <div class="text-center mb-6">
+                        <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Class="mr-2" Size="Size.Large"/>
+                            Account Login
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Please enter your credentials</MudText>
+                    </div>
+
+                    <EditForm Model="@LoginModel" OnValidSubmit="OnValidSubmit" method="post" FormName="loginForm">
+                        <MudStaticTextField @bind-Value="@LoginModel.Username"
+                                            Label="Username"
+                                            For="@(() => LoginModel.Username)"
+                                            AdornmentIcon="@Icons.Material.Filled.Person"
+                                            Class="mt-4"
+                                            FullWidth
+                                            Required="true"
+                                            RequiredError="Username is required"/>
+
+                        <MudStaticTextField @bind-Value="@LoginModel.Password"
+                                            Label="Password"
+                                            For="@(() => LoginModel.Password)"
+                                            InputType="InputType.Password"
+                                            AdornmentIcon="@Icons.Material.Filled.Lock"
+                                            Class="mt-4 mb-2"
+                                            FullWidth
+                                            Required="true"
+                                            RequiredError="Password is required"/>
+
+                        <div class="d-flex justify-space-between align-center mt-2 mb-4">
+                            <MudStaticCheckBox @bind-Value="@LoginModel.RememberMe" Label="Remember me" Color="Color.Primary"/>
+                            <MudLink Href="/Account/ForgotPassword" Style="@($"color:{Colors.Gray.Default};")" Underline="Underline.Hover">
+                                Forgot password?
+                            </MudLink>
+                        </div>
+
+                        <MudStaticButton Type="submit"
+                                         Variant="Variant.Filled"
+                                         Color="Color.Primary"
+                                         FullWidth
+                                         Size="Size.Large"
+                                         Class="mt-2 mb-3"
+                                         EndIcon="@Icons.Material.Filled.Login">
+                            Log in
+                        </MudStaticButton>
+
+                        @if (!string.IsNullOrEmpty(LoginErrorMessage))
+                        {
+                            <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.Error" Class="mb-4">
+                                @LoginErrorMessage
+                            </MudAlert>
+                        }
+
+                        <div class="text-center mt-4">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mr-2">Don't have an account?</MudText>
+                            <MudLink Href="/Account/Register" Color="Color.Primary" Underline="Underline.Hover">
+                                Register now
+                            </MudLink>
+                        </div>
+                    </EditForm>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</div>

@@ -1,0 +1,160 @@
+@page "/Home"
+
+@using PortfolioWebApp.Components.Layout
+@using PortfolioWebApp.Services.Chat
+@using PortfolioWebApp.Shared
+@layout MainLayout
+@rendermode InteractiveServer
+
+@inject IJSRuntime Js
+@inject GlobalChatService GlobalChatService
+@inject AuthenticationStateProvider AuthStateProvider
+
+@implements IAsyncDisposable;
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-10">
+    <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Portfolio Web Chat App</MudText>
+
+    <MudGrid Class="mt-6" GutterSize="3">
+        <!-- Left: Feature Cards -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="mb-3">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">🔐 Login & Registration</MudText>
+                    <MudText Typo="Typo.body2">Create an account or sign in to unlock all features.</MudText>
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Class="mb-3">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">👥 Manage Friends</MudText>
+                    <MudText Typo="Typo.body2">Search, add or remove friends from your list.</MudText>
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Class="mb-3">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">💬 Private Chats</MudText>
+                    <MudText Typo="Typo.body2">Start one-on-one conversations with your friends.</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Right: Global Chat -->
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-2">🌐 Global Chat</MudText>
+
+                    <!-- Chat message area -->
+                    <div @ref="_messagesContainer" style="max-height: 500px;min-height: 500px; overflow-y: auto;">
+                        @if (_isLoading) {
+                            <MudText Typo="Typo.body2" Class="pl-2">Loading messages...</MudText>
+                        }
+                        else {
+                            <MudList T="GlobalChatMessageDto" Items="LastMessages" Dense="true">
+                                @foreach (var msg in _lastMessages) {
+                                    <MudListItem>
+                                        <span style="@($"color: {msg.User.profile_color}")">
+                                            <b>@msg.User.username:</b>
+                                        </span>
+                                        @msg.Content
+                                        <br />
+                                        <small class="text-muted">@FormatTimestamp(msg.Created)</small>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+
+                    </div>
+
+                    <!-- Input & Send Button -->
+                    <MudGrid Class="mt-3" AlignItems="Center">
+                        <MudItem xs="9">
+                            <MudTextField @bind-Value="_newMessage" Placeholder="Type your message..." Variant="Variant.Outlined" FullWidth="true" Disabled="@_isLoading"/>
+                        </MudItem>
+                        <MudItem xs="3" Class="h-100">
+                            <MudButton Class="h-100" Variant="Variant.Filled" Color="Color.Primary" OnClick="SendMessage" FullWidth="true" Disabled="@_isLoading">Send</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<script src="js/Home/globalchat.js"></script>
+
+@code {
+    private ElementReference _messagesContainer;
+    private string _newMessage = string.Empty;
+    private List<GlobalChatMessageDto> _lastMessages = new();
+    private bool _isLoading = true;
+    private bool _initialized = false;
+    
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender && !_initialized) {
+            _initialized = true;
+            
+            // register a callback
+            GlobalChatService.OnMessageCallback += async (message) => {
+                _lastMessages.Add(message);
+                await UpdateChatBox();
+            };
+
+            await GlobalChatService.Connect();
+            List<GlobalChatMessageDto> messages = await GlobalChatService.LoadLatestMessages();
+            _lastMessages.AddRange(messages);
+            _isLoading = false;
+            await UpdateChatBox();
+        }
+    }
+
+    private async Task SendMessage() {
+        if (string.IsNullOrWhiteSpace(_newMessage)) return;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        string myName = authState.User.Identity.Name;
+
+        var myUser = new UserDto(myName, 0, "");
+
+        var message = new GlobalChatMessageDto(myUser, _newMessage, DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified));
+        
+        GlobalChatService.SendMessage(message);
+        _newMessage = string.Empty;
+    }
+
+    private async Task UpdateChatBox() {
+        await InvokeAsync(StateHasChanged); // re render
+        await Task.Delay(50);               // wait for DOM update
+        await Js.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+    }
+    
+    private string FormatTimestamp(DateTime dt) {
+        
+        var local = dt.ToLocalTime(); // <--- Wichtig!
+        var now = DateTime.Now;
+
+        string datePart = "";
+
+        if (local.Date != now.Date) {
+            if (local.Year != now.Year) {
+                datePart = local.ToString("dd.MM.yyyy");
+            }
+            else {
+                datePart = local.ToString("dd.MM");
+            }
+        }
+
+        string timePart = local.ToString("HH:mm");
+
+        return string.IsNullOrEmpty(datePart) ? timePart : $"{datePart} {timePart}";
+    }
+
+    public async ValueTask DisposeAsync() {
+        await GlobalChatService.Disconnect();
+    }
+
+}

@@ -1,0 +1,268 @@
+@page "/Chats"
+
+@using PortfolioWebApp.Services.Chat
+@using PortfolioWebApp.Shared
+@using Serilog
+
+@inject ILogger<Chats> Logger
+@inject IDirectChatStorageService ChatStorageService
+@inject IDirectChatHubConnectionService ChatHubConnectionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
+
+@implements IAsyncDisposable
+
+<div style="display: flex; height: calc(100vh - 48px); overflow: hidden;">
+    <!-- Left Area (Friends), fixed size -->
+    <MudContainer Style="width: 444px; min-width:444px; height: calc(100vh - 48px); padding: 0; display: flex; flex-direction: column;">
+        <MudCard Style="height:100%; display: flex; flex-direction: column;">
+            <MudCardContent Style="flex: 1; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
+                <MudText Typo="Typo.h6" Class="px-4 py-1">Your Chats</MudText>
+                <!-- Search Bar -->
+                <div class="px-4">
+                    <!-- put inside a div to prevent auto growing-->
+                    <MudTextField
+                        Class="mb-2"
+                        @bind-Value="_query"
+                        Immediate="true"
+                        Placeholder="Search..."
+                        Variant="Variant.Text"
+                        FullWidth="true"
+                        AdornmentIcon="@Icons.Material.Filled.Search"
+                        Adornment="Adornment.Start"/>
+                </div> 
+                <!-- Filter Options -->
+                <MudStack Row="true" Spacing="2" Class="px-4">
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.All ? Color.Primary : Color.Default)"
+                             Style="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.All ? "border: 1px solid var(--mud-palette-primary);" : null)"
+                             OnClick="@(() => ChangeFilter(IDirectChatStorageService.ChatPreviewFilter.All))">
+                        All
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Unread ? Color.Primary : Color.Default)"
+                             OnClick="@(() => ChangeFilter(IDirectChatStorageService.ChatPreviewFilter.Unread))">
+                        Unread
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Favorites ? Color.Primary : Color.Default)"
+                             OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Favorites)">
+                        Favorites
+                    </MudChip>
+
+                    <MudChip T="string"
+                             Class="m-0"
+                             Variant="Variant.Outlined"
+                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Groups ? Color.Primary : Color.Default)"
+                             OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Groups)">
+                        Groups
+                    </MudChip>
+                </MudStack> 
+                <!-- Chats List -->
+                <MudList T="string" Style="flex: 1; overflow-y: auto;">
+                    @if (!_initialized) {
+                        <MudText>Loading Friends...</MudText>
+                    }
+                    else {
+                        @foreach (var chat in _chatPreviews) {
+                            if (chat.ChatPartner.username.ToLower().Contains(_query.ToLower())) {
+                                <ChatPreview ChatPreviewData="chat" OnChatSelected="ChangeActiveChat" />} // if
+                        } // foreach
+                    }
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </MudContainer>
+
+    <!-- Right Area (Active Chat) -->
+    <div style="flex: 1;">
+        @if (ActiveChat is not null) {
+            <ChatWindow @ref="chatWindow" ChatData="@ActiveChat.Value" OnMessageSent="SendMessage" /> <!-- the reference value, not the value of the pair -->
+        } else {
+            <PlaceholderChatWindow/>
+        }
+    </div>
+</div>
+
+@code {
+    private ChatWindow chatWindow;
+    private bool _initialized = false;
+    private string _query = string.Empty;
+    private IDirectChatStorageService.ChatPreviewFilter _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.All;
+   
+    private List<ChatPreviewDto> _chatPreviews = new();
+    private KeyValuePair<UserDto, List<DirectMessageDto>>? ActiveChat { get; set; }
+
+    protected override async Task OnInitializedAsync() {
+        _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+        _initialized = true;
+        
+        Unhook();
+        Hook();
+    }
+    
+    // Deregister all because when the users leaves the chat page,
+    // the DirectChatConnectionService will still update the DirectChatStorageService.
+    // THUS: when the user re-enters the Chats page,
+    // OnInitializedAsync will be called again and reload and rerender everything from the DirectChatStorageService. 
+    public ValueTask DisposeAsync() {
+        Unhook();
+        return ValueTask.CompletedTask;
+    }
+
+    private void Hook() {
+        // when a message was received and added to the DirectChatStorageService
+        ChatHubConnectionService.ReceiveMessage += HandleMessageReceived;
+        // when messages was delivered and updated in the DirectChatStorageService
+        ChatHubConnectionService.MessageDelivered += HandleMessageDelivered;
+        // when messages was delivered and updated in the DirectChatStorageService
+        ChatHubConnectionService.MessageRead += HandleMessageRead;
+        // when a outgoing message got sent successfully
+        ChatHubConnectionService.MessageSentAcknowledgement += HandleMessageSentAcknowledgement;
+    }
+
+    private void Unhook() {
+        ChatHubConnectionService.ReceiveMessage -= HandleMessageReceived;
+        ChatHubConnectionService.MessageDelivered -= HandleMessageDelivered;
+        ChatHubConnectionService.MessageRead -= HandleMessageRead;
+        ChatHubConnectionService.MessageSentAcknowledgement -= HandleMessageSentAcknowledgement;
+    }
+
+    // when we receive a message from the chat partner
+    private void HandleMessageReceived(DirectMessageDto message)
+    {
+        Task.Run(async () =>
+        {
+            if (ActiveChat is not null && message.From.id == ActiveChat.Value.Key.id) 
+            {
+                var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+                ChatStorageService.MarkUnreadMessagesAsRead(message.From.id, now);
+                
+                await chatWindow.ScrollToBottom();
+                // send message read event to hub
+                var messageReadDto = new MessageReadDto([message.MessageId], now);
+                await ChatHubConnectionService.SendMessageRead(messageReadDto);
+            }
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+            
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    // when the chat partner received our messages
+    private void HandleMessageDelivered(MessageDeliveredDto messageDelivered)
+    {
+        Task.Run(async () =>
+        {
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+
+            var selectedChatPreview = _chatPreviews
+                .Where(p => p.ChatPartner.id == ActiveChat.Value.Key.id)
+                .FirstOrDefault();
+
+            ActiveChat = ChatStorageService.GetFullChatForChatPreview(selectedChatPreview);
+
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    // when the chat partner read our messages
+    private void HandleMessageRead(MessageReadDto messageRead)
+    {
+        Task.Run(async () =>
+        {
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+
+            var selectedChatPreview = _chatPreviews
+                .Where(p => p.ChatPartner.id == ActiveChat.Value.Key.id)
+                .FirstOrDefault();
+
+            ActiveChat = ChatStorageService.GetFullChatForChatPreview(selectedChatPreview);
+
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    // when the message we sent was acknowledged by the server
+    private void HandleMessageSentAcknowledgement(DirectMessageDto messageSent)
+    {
+        Task.Run(async () =>
+        {
+            _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
+
+            var selectedChatPreview = _chatPreviews
+                .Where(p => p.ChatPartner.id == ActiveChat.Value.Key.id)
+                .FirstOrDefault();
+
+            ActiveChat = ChatStorageService.GetFullChatForChatPreview(selectedChatPreview);
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+            await chatWindow.ScrollToBottom();
+        });
+    }
+
+    
+    private void ChangeFilter(IDirectChatStorageService.ChatPreviewFilter newPreviewFilter) {
+        _selectedPreviewFilter = newPreviewFilter;
+        _chatPreviews = ChatStorageService.GetChatPreviews(newPreviewFilter);
+        StateHasChanged(); // re-render the Chats list
+    }
+
+    private async Task ChangeActiveChat(ChatPreviewDto chatPreviewDto) {
+        // open another chat window
+        ActiveChat = ChatStorageService.GetFullChatForChatPreview(chatPreviewDto);
+        _shouldScrollToBottom = true;
+        
+        // then: mark unread messages as read
+        DateTime time = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+        List<int> messagesRead = ChatStorageService.MarkUnreadMessagesAsRead(ActiveChat.Value.Key.id, time);
+       
+
+        if (messagesRead.Count > 0) {
+            var readDto = new MessageReadDto(messagesRead, time);
+            await ChatHubConnectionService.SendMessageRead(readDto);
+            
+            var index = _chatPreviews.FindIndex(cp => cp.ChatPartner.id == chatPreviewDto.ChatPartner.id);
+            if (index != -1) {
+                _chatPreviews[index] = chatPreviewDto with { NewMessagesCount = 0 };
+            }
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SendMessage(string message) {
+        var me = AuthenticationStateProvider.GetAuthenticationStateAsync().Result.User.Identity.Name;
+        var target = ActiveChat.Value.Key;
+
+        var fromDto = new UserDto(me, 0, "");
+        var toDto = new UserDto(target.username, target.id, target.profile_color);
+        
+        var messageDto = new DirectMessageDto(0, fromDto, toDto, message, 
+            DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified), null, null);
+        ChatHubConnectionService.Send(messageDto);
+    }
+    
+    
+    // scroll to bottom to show latest messages in that chat.
+    private bool _shouldScrollToBottom;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldScrollToBottom && chatWindow is not null)
+        {
+            _shouldScrollToBottom = false;
+            await chatWindow.ScrollToBottom();
+        }
+    }
+    
+}

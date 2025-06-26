@@ -1,0 +1,174 @@
+﻿@using PortfolioWebApp.Shared
+@using MudBlazor
+
+@inject IJSRuntime JS
+
+<MudPaper Class="d-flex flex-column h-100" Elevation="1">
+
+    <!-- Header -->
+    <MudPaper Class="d-flex align-items-center px-4 py-2" Elevation="1">
+        <MudAvatar Style="@($"background-color: {ChatData.Key.profile_color}")" Size="Size.Medium">
+            @ChatData.Key.username.ToUpper().ToCharArray()[0]
+        </MudAvatar>
+        <MudText Typo="Typo.h6" Class="ml-2">@ChatData.Key.username</MudText>
+    </MudPaper>
+
+    <!-- Nachrichtenbereich -->
+    <MudPaper Class="flex-grow-1 overflow-auto px-4 py-2 scrollable">
+        @if (ChatData.Value?.Any() == true) {
+            var groupedMessages = GroupByConsecutiveSender(
+                ChatData.Value
+                    .OrderBy(m => m.To.username == ChatData.Key.username // message was sent by me
+                        ? m.Created
+                        : m.Delivered ?? m.Created)
+            );
+            
+            for (int i = 0; i < groupedMessages.Count; i++) {
+                var group = groupedMessages[i];
+                var lastMessage = group.Last();
+                var isCurrentUser = lastMessage.To.username == ChatData.Key.username;
+                var position = isCurrentUser ? ChatBubblePosition.End : ChatBubblePosition.Start;
+
+                <MudChat ChatPosition="@position">
+                    @foreach (var message in group) {
+                        <MudChatBubble Class="whatsapp-bubble">
+                            <div class="wa-wrapper">
+                                <div class="wa-text-with-meta">
+                                    <span class="wa-text">@message.Content</span>
+                                    <span class="wa-meta">
+                                        <span class="wa-time">@message.Created.ToString("HH:mm")</span>
+                                        @if (message.From.id != ChatData.Key.id)
+                                        {
+                                            @if (message.Read is not null)
+                                            {
+                                                <MessageStatusIcon State="MessageStatusIcon.MessageStatus.Read" />
+                                            }
+                                            else if (message.Delivered is not null)
+                                            {
+                                                <MessageStatusIcon State="MessageStatusIcon.MessageStatus.Delivered" />
+                                            }
+                                            else
+                                            {
+                                                <MessageStatusIcon State="MessageStatusIcon.MessageStatus.Sent" />
+                                            }
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </MudChatBubble>
+                    }
+                    <MudChatFooter Class="mt-1">@lastMessage.Created.ToString()</MudChatFooter>
+                </MudChat>
+            }
+        }
+        else {
+            <MudChatBubble Text="Noch keine Nachrichten" Side="ChatSide.Center"/>
+        }
+    </MudPaper>
+
+    <!-- Eingabeleiste -->
+    <MudPaper Elevation="1" Class="d-flex justify-content-center pa-2">
+        <div style="display:flex; max-width: 60%; min-width: 400px;">
+            <MudTextField @bind-Value="_newMessage"
+                          Placeholder="Nachricht schreiben..."
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@Icons.Material.Filled.Send"
+                          OnAdornmentClick="@SendMessage"
+                          Immediate="true"
+                          AutoGrow="true"
+                          MaxLines="5"/>            
+        </div>
+
+    </MudPaper>
+
+</MudPaper>
+
+<script src="js/Home/globalchat.js"></script>
+
+@code {
+    private MudPaper _chatArea;
+    
+    [Parameter, EditorRequired]
+    public KeyValuePair<UserDto, List<DirectMessageDto>> ChatData { get; set; }
+
+    private string _newMessage = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnMessageSent { get; set; }
+    
+    private async Task SendMessage() {
+        await OnMessageSent.InvokeAsync(_newMessage);
+        _newMessage = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private List<List<DirectMessageDto>> GroupByConsecutiveSender(IEnumerable<DirectMessageDto> messages) {
+        
+        var result = new List<List<DirectMessageDto>>();
+        List<DirectMessageDto>? currentGroup = null;
+        string? lastSender = null;
+
+        foreach (var message in messages) {
+            if (lastSender != message.From.username) {
+                currentGroup = new List<DirectMessageDto>();
+                result.Add(currentGroup);
+                lastSender = message.From.username;
+            }
+            currentGroup!.Add(message);
+        }
+
+        return result;
+    }
+
+    public async Task ScrollToBottom() {
+        await JS.InvokeVoidAsync("scrollToBottom");
+    }
+}
+
+<style>
+.whatsapp-bubble {
+    padding: 0 !important;
+    max-width: 65ch;
+    border-radius: 8px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.wa-wrapper {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+}
+.wa-text-with-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+.wa-text {
+    flex: 1;
+    text-align: left;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.wa-meta {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0.75;
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+    top: 0.3rem;
+}
+
+
+.wa-time {
+    margin-right: 0.2rem;
+}
+</style>
+
+
+

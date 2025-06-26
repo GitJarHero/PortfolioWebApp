@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: database-webapp
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U webapp -d webappdb" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    build:
+      context: ./Dev/Database # otherwise Database/Dockerfile won't COPY the "./init.sql"
+      dockerfile: ./Dockerfile # this path is relative to 'context:'
+    ports:
+      - "6543:5432" # Host:Container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  web:
+    container_name: blazor-webapp
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - "5120:80" # Host:Container
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=webappdb;Username=webapp;Password=webapp123
+    depends_on:
+      db:
+        condition: service_healthy
+          
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
