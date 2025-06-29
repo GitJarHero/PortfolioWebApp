@@ -10,7 +10,7 @@ VALUES
     ('Ja, es macht Spaß', 2, 1,             '2024-01-15 09:11:00', '2024-01-15 09:11:05', '2024-01-15 09:12:00'),
     ('Lass uns nächste Woche treffen', 1, 2, '2024-01-15 09:13:00', '2024-01-15 09:13:05', '2024-01-15 09:14:00'),
     ('??', 1, 2,                            '2024-01-15 09:13:00', '2024-01-15 09:13:07', '2024-01-15 09:14:00'),
-    ('Gerne, ich melde mich', 2, 1,         '2024-01-15 09:15:00', '2024-01-15 09:15:05', '2024-01-15 09:16:00');
+    ('Gerne, ich melde mich', 2, 1,         '2024-01-15 09:15:00', null, null);
 
 -- Chat between User 1 and User 3 (6 messages)
 INSERT INTO directmessage (content, "from", "to", created, delivered, read)
@@ -20,7 +20,8 @@ VALUES
     ('Auch gut. Hast du die Dokumente?', 1, 3,  '2024-01-16 14:05:00', '2024-01-16 14:05:05', '2024-01-16 14:06:00'),
     ('Ja, ich schicke sie dir', 3, 1,           '2024-01-16 14:07:00', '2024-01-16 14:07:05', '2024-01-16 14:08:00'),
     ('Danke, das ist super!', 1, 3,             '2024-01-16 14:09:00', '2024-01-16 14:09:05', '2024-01-16 14:10:00'),
-    ('Kein Problem, gerne!', 3, 1,              '2024-01-16 14:11:00', '2024-01-16 14:11:05', '2024-01-16 14:12:00');
+    ('Kein Problem, gerne!', 3, 1,              '2024-01-16 14:11:00', null, null),
+    ('Hast du sie bekommen?', 3, 1,              '2024-01-16 14:20:00', null, null);
 
 -- Chat between User 1 and User 4 (5 messages)
 INSERT INTO directmessage (content, "from", "to", created, delivered, read)

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.EntityFrameworkCore;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
 
@@ -20,6 +21,12 @@ public class UserService {
     public User FindUserByName(string name) {
         return _dbContext.Users.FirstOrDefault(u => u.UserName.ToLower() == name.ToLower())?? 
                throw new Exception("User not found: " + name);;
+    }
+
+    public async Task<User> FindUserByNameAsync(string name) {
+        User user = await _dbContext.Users.FirstOrDefaultAsync(u => u.UserName.ToLower() == name.ToLower()) ?? 
+                    throw new Exception($"User not found: {name}");
+        return user;
     }
     
 }

@@ -1,6 +1,7 @@
 @page "/Friends"
 
 @using PortfolioWebApp.Services
+@using PortfolioWebApp.Services.Chat
 @using PortfolioWebApp.Shared
 
 @inject FriendshipService FriendshipService
@@ -10,6 +11,7 @@
 @inject FriendRequestService FriendRequestService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<Friends> Logger
+@inject NavigationManager Navigation;
 
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
     <MudGrid Spacing="4" >
@@ -173,9 +175,14 @@
                                 @foreach (var friend in friendsList) {
                                     if (friend.username.ToLower().Contains(_query.ToLower())) {
                                         <MudListItem>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <MudAvatar Size="Size.Medium" Style="@($"background-color: {friend.profile_color}")">@friend.username.ToUpper().ToCharArray()[0]</MudAvatar>
-                                                <MudText>@friend.username</MudText>
+                                            <div class="d-flex justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <MudAvatar Size="Size.Medium" Style="@($"background-color: {friend.profile_color}")">@friend.username.ToUpper().ToCharArray()[0]</MudAvatar>
+                                                    <MudText>@friend.username</MudText>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2" onclick="@(()=>OpenChat(friend.username))">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Chat"></MudIcon>    
+                                                </div>
                                             </div>
                                         </MudListItem>
                                     }
@@ -318,6 +325,11 @@
         if (!result.Canceled) {
             await FriendRequestClientService.SendRequestTo(userName);
         }
+    }
+
+    private void OpenChat(string friendName) {
+        DirectChatStorageService.ShowChatForUser = friendName;
+        Navigation.NavigateTo("/Chats");
     }
 }
 

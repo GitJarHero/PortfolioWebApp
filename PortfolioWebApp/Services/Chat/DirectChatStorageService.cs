@@ -18,6 +18,9 @@ public class DirectChatStorageService : IDirectChatStorageService {
     
     private Dictionary<UserDto, List<DirectMessageDto>> _chats = new();
     
+    // set when clicking on the chat icon in the FriendsList in Friends.razor
+    // unset when the chat is being shown
+    public static string? ShowChatForUser = null;
     
     public DirectChatStorageService(
         ILogger<DirectChatStorageService> logger, 
@@ -64,7 +67,18 @@ public class DirectChatStorageService : IDirectChatStorageService {
                 
             }
         }
-        return previews;
+        return previews
+            .OrderBy(pv =>
+            {
+                var msg = pv.LatestMessage;
+                if (msg == null) return DateTime.MinValue;
+
+                return msg.From.username == me
+                    ? msg.Created
+                    : msg.Delivered ?? msg.Created; // fallback if Delivered is null
+            })
+            .ToList();
+
     }
 
     public KeyValuePair<UserDto, List<DirectMessageDto>> GetFullChatForChatPreview(ChatPreviewDto chatPreviewDto) 

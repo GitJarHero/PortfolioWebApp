@@ -1,5 +1,7 @@
 @page "/Chats"
 
+@using PortfolioWebApp.Models.Entities
+@using PortfolioWebApp.Services
 @using PortfolioWebApp.Services.Chat
 @using PortfolioWebApp.Shared
 @using Serilog
@@ -7,6 +9,7 @@
 @inject ILogger<Chats> Logger
 @inject IDirectChatStorageService ChatStorageService
 @inject IDirectChatHubConnectionService ChatHubConnectionService
+@inject UserService UserService;
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
 
@@ -50,21 +53,27 @@
                         Unread
                     </MudChip>
 
-                    <MudChip T="string"
-                             Class="m-0"
-                             Variant="Variant.Outlined"
-                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Favorites ? Color.Primary : Color.Default)"
-                             OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Favorites)">
-                        Favorites
-                    </MudChip>
+                    <MudTooltip Text="To be implemented" Arrow="true" Placement="Placement.Top">
+                        <MudChip T="string"
+                                 Class="m-0"
+                                 Variant="Variant.Outlined"
+                                 Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Favorites ? Color.Primary : Color.Default)"
+                                 OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Favorites)">
+                            Favorites
+                        </MudChip>
+                    </MudTooltip>
+                    
 
-                    <MudChip T="string"
-                             Class="m-0"
-                             Variant="Variant.Outlined"
-                             Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Groups ? Color.Primary : Color.Default)"
-                             OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Groups)">
-                        Groups
-                    </MudChip>
+                    <MudTooltip Text="To be implemented" Arrow="true" Placement="Placement.Top">
+                        <MudChip T="string"
+                                 Class="m-0"
+                                 Variant="Variant.Outlined"
+                                 Color="@(_selectedPreviewFilter == IDirectChatStorageService.ChatPreviewFilter.Groups ? Color.Primary : Color.Default)"
+                                 OnClick="@(() => _selectedPreviewFilter = IDirectChatStorageService.ChatPreviewFilter.Groups)">
+                            Groups
+                        </MudChip>
+                    </MudTooltip>
+                    
                 </MudStack> 
                 <!-- Chats List -->
                 <MudList T="string" Style="flex: 1; overflow-y: auto;">
@@ -100,13 +109,19 @@
    
     private List<ChatPreviewDto> _chatPreviews = new();
     private KeyValuePair<UserDto, List<DirectMessageDto>>? ActiveChat { get; set; }
-
+    
     protected override async Task OnInitializedAsync() {
         _chatPreviews = ChatStorageService.GetChatPreviews(_selectedPreviewFilter);
         _initialized = true;
         
         Unhook();
         Hook();
+
+        if (DirectChatStorageService.ShowChatForUser != null) {
+            await OpenChatWithUser(DirectChatStorageService.ShowChatForUser);
+            DirectChatStorageService.ShowChatForUser = null;
+        }
+        
     }
     
     // Deregister all because when the users leaves the chat page,
@@ -217,6 +232,7 @@
         StateHasChanged(); // re-render the Chats list
     }
 
+    // for navigating between existing chats
     private async Task ChangeActiveChat(ChatPreviewDto chatPreviewDto) {
         // open another chat window
         ActiveChat = ChatStorageService.GetFullChatForChatPreview(chatPreviewDto);
@@ -237,6 +253,36 @@
             }
         }
         
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    // when clicking on the chat Icon in Friends.razor
+    private async Task OpenChatWithUser(string username) {
+    
+        ChatPreviewDto? chatPreview = _chatPreviews
+            .FirstOrDefault(pv => pv.ChatPartner.username.Equals(username));
+
+        if (chatPreview is not null) {
+            // open existing chat
+            await ChangeActiveChat(chatPreview);
+        }
+        else {
+            await StartNewChat(username);
+        }
+        
+    }
+    
+    private async Task StartNewChat(string withUser) {
+
+        var user = await UserService.FindUserByNameAsync(withUser);
+        
+        UserDto userInfo = new UserDto(user.UserName, user.Id, user.ProfileColor);
+        List<DirectMessageDto> messages = new();
+        
+        KeyValuePair<UserDto, List<DirectMessageDto>> NewChat =
+            new KeyValuePair<UserDto, List<DirectMessageDto>>(userInfo, messages);
+
+        ActiveChat = NewChat;
         await InvokeAsync(StateHasChanged);
     }
 

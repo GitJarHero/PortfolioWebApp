@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using PortfolioWebApp.Models;
 using PortfolioWebApp.Models.Entities;
@@ -36,7 +34,8 @@ namespace PortfolioWebApp.Services
             {
                 UserName = username,
                 Password = _passwordHashingService.Hash(password),
-                State = State.Active
+                State = State.Active,
+                ProfileColor = GenerateRandomHexColor()
             };
             // Get the USER role
             var userRole = await _dbContext.UserRoles.FirstOrDefaultAsync(r => r.Name == "user");
@@ -51,6 +50,26 @@ namespace PortfolioWebApp.Services
 
             return true;
         }
+        
+        private string GenerateRandomHexColor()
+        {
+            Random rand = new Random();
+            while (true)
+            {
+                int r = rand.Next(0, 256);
+                int g = rand.Next(0, 256);
+                int b = rand.Next(0, 256);
+                
+                double luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+                // colors should look okay in both dark and white mode
+                if (luminance > 64 && luminance < 192)
+                {
+                    return $"#{r:X2}{g:X2}{b:X2}";
+                }
+            }
+        }
+
         
     }
 }
